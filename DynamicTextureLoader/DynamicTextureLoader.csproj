@@ -89,20 +89,20 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>xcopy  $(TargetFileName) "$(SolutionDir)Build\GameData\DynamicTextureLoader\Plugins\" /eyir
+    <PostBuildEvent>xcopy  $(TargetFileName) "$(SolutionDir)BuildOutput\GameData\DynamicTextureLoader\Plugins\" /eyir
 
 call "C:\Program Files (x86)\Mono\bin\pdb2mdb.bat" $(TargetFileName)
-xcopy  $(TargetName).pdb "$(SolutionDir)Build\GameData\DynamicTextureLoader\Plugins\" /eyir
-xcopy  $(TargetFileName).mdb "$(SolutionDir)Build\GameData\DynamicTextureLoader\Plugins\" /eyir
+xcopy  $(TargetName).pdb "$(SolutionDir)BuildOutput\GameData\DynamicTextureLoader\Plugins\" /eyir
+xcopy  $(TargetFileName).mdb "$(SolutionDir)BuildOutput\GameData\DynamicTextureLoader\Plugins\" /eyir
 
 
-xcopy "$(SolutionDir)Build\GameData" "C:\Users\rbray\Documents\ksp\ksp-$(PlatformName)-1-0-5\GameData" /e /y /i /r
-xcopy "$(SolutionDir)Build\GameData" "C:\Users\rbray\Documents\ksp\ksp-$(PlatformName)-1-0-5\GameData" /e /y /i /r
+xcopy "$(SolutionDir)BuildOutput\GameData" "C:\Users\rbray\Documents\ksp\ksp-$(PlatformName)-1-0-5\GameData" /e /y /i /r
+xcopy "$(SolutionDir)BuildOutput\GameData" "C:\Users\rbray\Documents\ksp\ksp-$(PlatformName)-1-0-5\GameData" /e /y /i /r
 
-if $(ConfigurationName) == Release del /s "$(SolutionDir)Build\*.pdb"
-if $(ConfigurationName) == Release del /s "$(SolutionDir)Build\*.mdb"
+if $(ConfigurationName) == Release del /s "$(SolutionDir)BuildOutput\*.pdb"
+if $(ConfigurationName) == Release del /s "$(SolutionDir)BuildOutput\*.mdb"
 if $(ConfigurationName) == Release del /s "$(SolutionDir)\*.zip"
-if $(ConfigurationName) == Release 7z a -tzip "$(SolutionDir)$(PlatformName)-DynamicTextureLoader-Release.zip" "$(SolutionDir)Build\GameData"</PostBuildEvent>
+if $(ConfigurationName) == Release 7z a -tzip "$(SolutionDir)$(PlatformName)-DynamicTextureLoader-Release.zip" "$(SolutionDir)BuildOutput\GameData"</PostBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
     <PreBuildEvent>echo "Running Pre-build"
