@@ -20,6 +20,7 @@ namespace DynamicTextureLoader
         private static int _Emissive;
 
         static bool loaded = false;
+        static bool unloaded = false;
         static internal void Log(string s)
         {
             KSPLog.print( "DynamicTextureLoader: "+s);
@@ -77,7 +78,7 @@ namespace DynamicTextureLoader
                 moduleNode.SetValue("name", typeof(TextureUnloaderPartModule).Name, true);
             }
 
-            if (HighLogic.LoadedScene == GameScenes.SPACECENTER)
+            if (HighLogic.LoadedScene == GameScenes.SPACECENTER && !unloaded)
             {
                 foreach (AvailablePart ap in PartLoader.LoadedPartsList)
                 {
@@ -88,6 +89,7 @@ namespace DynamicTextureLoader
                         module.Unload(true);
                     }
                 }
+                unloaded = true;
             }
         }
     }

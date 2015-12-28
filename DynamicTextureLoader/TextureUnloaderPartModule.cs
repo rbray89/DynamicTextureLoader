@@ -9,29 +9,15 @@ namespace DynamicTextureLoader
     class TextureUnloaderPartModule : PartModule
     {
         bool loaded = false;
-        StartState startState;
-        public override void OnStart(StartState state)
+
+        public override void OnAwake()
         {
-            startState = state;
             Load();
         }
 
-        public override void OnActive()
-        {
-            Load();
-        }
-        
-        public override void OnInactive()
-        {
-            Unload();
-        }
-        
         public void OnDestroy()
         {
-            if (startState == StartState.Editor)
-            {
-                Unload();
-            }
+            Unload();
         }
 
         private void Load()
@@ -39,7 +25,7 @@ namespace DynamicTextureLoader
             if (!loaded)
             {
                 Loader.Log("Loading: " + part.name);
-                foreach (MeshRenderer mr in part.FindModelComponents<MeshRenderer>())
+                foreach (Renderer mr in part.FindModelComponents<Renderer>())
                 {
                     TexRefCnt.LoadFromRenderer(mr);
                 }
@@ -52,9 +38,9 @@ namespace DynamicTextureLoader
             if (loaded || force)
             {
                 Loader.Log("Unloading: " + part.name);
-                foreach (MeshRenderer mr in part.FindModelComponents<MeshRenderer>())
+                foreach (Renderer mr in part.FindModelComponents<Renderer>())
                 {
-                    TexRefCnt.UnLoadFromRenderer(mr);
+                    TexRefCnt.UnLoadFromRenderer(mr, force);
                 }
                 loaded = false;
             }

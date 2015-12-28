@@ -9,8 +9,9 @@ namespace DynamicTextureLoader
     class TexRefCnt
     {
         public static Dictionary<string, TexRefCnt> textureDictionary = new Dictionary<string, TexRefCnt>();
+        public static Queue<TexRefCnt> unloadQueue = new Queue<TexRefCnt>();
 
-        public static void LoadFromRenderer(MeshRenderer renderer)
+        public static void LoadFromRenderer(Renderer renderer)
         {
             foreach (Material material in renderer.materials)
             {
@@ -41,57 +42,82 @@ namespace DynamicTextureLoader
                     textureDictionary[texture.name] = texRef;
                 }
                 texRef.count++;
-                if (texRef.count == 1 && texRef.texInfo != null)
+                if (texRef.count > 0 && texRef.texInfo != null && texRef.unloaded && HighLogic.LoadedSceneIsGame)
                 {
+                    UnLoadFromQueue();
                     TextureConverter.Reload(texRef.texInfo, true);
+                    texRef.unloaded = false;
                 }
             }
         }
 
-        public static void UnLoadFromRenderer(MeshRenderer renderer)
+        private static void UnLoadFromQueue()
         {
-            foreach (Material material in renderer.materials)
+            while(unloadQueue.Count > 0)
             {
-                UnLoadFromMaterial(material);
+                TexRefCnt texRef = unloadQueue.Dequeue();
+                if(!texRef.unloaded && texRef.count <= 0)
+                {
+                    TextureConverter.Minimize(texRef.texInfo);
+                    texRef.unloaded = true;
+                }
             }
         }
 
-        public static void UnLoadFromMaterial(Material material)
+        public static void UnLoadFromRenderer(Renderer renderer, bool force)
         {
-            UnLoadFromTexture(material, Loader._MainTex_PROPERTY);
-            UnLoadFromTexture(material, Loader._Emissive_PROPERTY);
-            UnLoadFromTexture(material, Loader._BumpMap_PROPERTY);
+            foreach (Material material in renderer.materials)
+            {
+                UnLoadFromMaterial(material, force);
+            }
         }
 
-        public static void UnLoadFromTexture(Material material, int id)
+        public static void UnLoadFromMaterial(Material material, bool force)
+        {
+            UnLoadFromTexture(material, Loader._MainTex_PROPERTY, force);
+            UnLoadFromTexture(material, Loader._Emissive_PROPERTY, force);
+            UnLoadFromTexture(material, Loader._BumpMap_PROPERTY, force);
+        }
+
+        public static void UnLoadFromTexture(Material material, int id, bool force)
         {
             Texture2D texture = (Texture2D)material.GetTexture(id);
-            if (texture != null && textureDictionary.ContainsKey(texture.name))
+            if (texture != null)
             {
 
-                TexRefCnt texRef = textureDictionary[texture.name];
+                TexRefCnt texRef;
+                if (textureDictionary.ContainsKey(texture.name))
+                {
+                    texRef = textureDictionary[texture.name];
+                }
+                else
+                {
+                    texRef = new TexRefCnt(texture);
+                    textureDictionary[texture.name] = texRef;
+                }
+
                 if (texRef.count > 0)
                 {
                     texRef.count--;
                 }
-                if (texRef.count <= 0 && texRef.texInfo != null)
+                if (texRef.count <= 0 && texRef.texInfo != null && !texRef.unloaded)
                 {
-                    TextureConverter.Minimize(texRef.texInfo);
-                }
-            }
-            else if (texture != null)
-            {
-                TexRefCnt texRef = new TexRefCnt(texture);
-                textureDictionary[texture.name] = texRef;
-                if (texRef.texInfo != null)
-                {
-                    TextureConverter.Minimize(texRef.texInfo);
+                    if (force)
+                    {
+                        TextureConverter.Minimize(texRef.texInfo);
+                        texRef.unloaded = true;
+                    }
+                    else
+                    {
+                        unloadQueue.Enqueue(texRef);
+                    }
                 }
             }
         }
 
         int count = 0;
         GameDatabase.TextureInfo texInfo;
+        bool unloaded = false;
         public TexRefCnt(Texture2D tex)
         {
             texInfo = GameDatabase.Instance.GetTextureInfo(tex.name);
