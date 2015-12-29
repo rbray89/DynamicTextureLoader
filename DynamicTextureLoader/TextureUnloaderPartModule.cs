@@ -12,7 +12,10 @@ namespace DynamicTextureLoader
 
         public override void OnAwake()
         {
-            Load();
+            if (HighLogic.LoadedSceneIsGame)
+            {
+                Load();
+            }
         }
 
         public void OnDestroy()

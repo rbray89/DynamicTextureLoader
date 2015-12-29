@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text;
 using UnityEngine;
 
@@ -150,7 +151,6 @@ namespace DynamicTextureLoader
             newPixel.b = (byte)((cwb + chb) / 2.0f);
             newPixel.a = (byte)((cwa + cha) / 2.0f);
         }
-
 
         private static bool HasAlpha(Color32[] colors)
         {
@@ -593,6 +593,7 @@ namespace DynamicTextureLoader
                             GameObject.DestroyImmediate(texture.texture);
                             texture.texture = new Texture2D((int)dDSHeader.dwWidth, (int)dDSHeader.dwHeight, TextureFormat.DXT1, mipmap);
                             texture.texture.LoadRawTextureData(binaryReader.ReadBytes((int)(binaryReader.BaseStream.Length - binaryReader.BaseStream.Position)));
+                            texture.texture.Apply(false, !texture.isReadable);
                         }
                     }
                     else if (dDSHeader.ddspf.dwFourCC == DDSHeaders.DDSValues.uintDXT3)
@@ -626,6 +627,7 @@ namespace DynamicTextureLoader
                             GameObject.DestroyImmediate(texture.texture);
                             texture.texture = new Texture2D((int)dDSHeader.dwWidth, (int)dDSHeader.dwHeight, (TextureFormat)11, mipmap);
                             texture.texture.LoadRawTextureData(binaryReader.ReadBytes((int)(binaryReader.BaseStream.Length - binaryReader.BaseStream.Position)));
+                            texture.texture.Apply(false, !texture.isReadable);
                         }
                     }
                     else if (dDSHeader.ddspf.dwFourCC == DDSHeaders.DDSValues.uintDXT5)
@@ -658,6 +660,7 @@ namespace DynamicTextureLoader
                             GameObject.DestroyImmediate(texture.texture);
                             texture.texture = new Texture2D((int)dDSHeader.dwWidth, (int)dDSHeader.dwHeight, TextureFormat.DXT5, mipmap);
                             texture.texture.LoadRawTextureData(binaryReader.ReadBytes((int)(binaryReader.BaseStream.Length - binaryReader.BaseStream.Position)));
+                            texture.texture.Apply(false, !texture.isReadable);
                         }
                     }
                     else if (dDSHeader.ddspf.dwFourCC == DDSHeaders.DDSValues.uintDXT2)
@@ -748,6 +751,7 @@ namespace DynamicTextureLoader
                             GameDatabase.DestroyImmediate(texture.texture);
                             texture.texture = new Texture2D((int)dDSHeader.dwWidth, (int)dDSHeader.dwHeight, textureFormat, mipmap);
                             texture.texture.LoadRawTextureData(binaryReader.ReadBytes((int)(binaryReader.BaseStream.Length - binaryReader.BaseStream.Position)));
+                            texture.texture.Apply(false, !texture.isReadable);
                         }
                     }
 
@@ -791,13 +795,57 @@ namespace DynamicTextureLoader
             return false;
         }
 
+        static String GetMD5String(String file)
+        {
+            string MD5String = null;
+            if (File.Exists(file))
+            {
+                FileStream stream = File.OpenRead(file);
+                MD5 md5 = MD5.Create();
+                byte[] hash = md5.ComputeHash(stream);
+                stream.Close();
+                MD5String = BitConverter.ToString(hash);
+            }
+            return MD5String;
+        }
+
+        internal static GameDatabase.TextureInfo Load(UrlDir.UrlFile urlFile)
+        {
+            string hash = GetMD5String(urlFile.fullPath);
+            bool hasMipmaps = urlFile.fileExtension == "png" ? false : true;
+            bool isNormalMap = urlFile.name.EndsWith("NRM");
+            bool isReadable = urlFile.fileExtension == "dds" || isNormalMap ? false : true;
+            bool isCompressed = urlFile.fileExtension == "tga" ? false : true;
+            GameDatabase.TextureInfo texInfo = new GameDatabase.TextureInfo(urlFile, null, isNormalMap, isReadable, isCompressed);
+            string cached = Directory.GetParent(Assembly.GetExecutingAssembly().Location) + "/ScaledTexCache/" + texInfo.file.url + "_hash_" + hash;
+            if (File.Exists(cached))
+            {
+                KSPLog.print("Loaded From cache @" + cached);
+                byte[] cache = System.IO.File.ReadAllBytes(cached);
+                texInfo.texture = new Texture2D(32, 32, TextureFormat.ARGB32, hasMipmaps);
+                if(isCompressed)
+                {
+                    texInfo.texture.Compress(true);
+                }
+                texInfo.texture.Apply(hasMipmaps, !isReadable);
+                texInfo.texture.LoadImage(cache);
+            }
+            else
+            {
+                KSPLog.print("Caching @" + cached);
+                Reload(texInfo, false, default(Vector2), null, hasMipmaps);
+
+            }
+            return texInfo;
+        }
+
         public static void Reload(GameDatabase.TextureInfo texInfo)
         {
             if (texInfo.texture != null)
             {
                 KSPLog.print("Reloading " + texInfo.texture.name);
-                string cached = Directory.GetParent(Assembly.GetExecutingAssembly().Location) + "/TexCache/" + texInfo.file.url;
-
+                string hash = GetMD5String(texInfo.file.fullPath);
+                string cached = Directory.GetParent(Assembly.GetExecutingAssembly().Location) + "/TexCache/" + texInfo.file.url+ "_hash_" + hash;
                 if (File.Exists(cached))
                 {
                     KSPLog.print("Loaded From cache @" + cached);
@@ -821,20 +869,20 @@ namespace DynamicTextureLoader
 
             if (texInfo.texture != null && ( texInfo.texture.width > scaleSize.x || texInfo.texture.height > scaleSize.y))
             {
-                KSPLog.print("Freeing " + texInfo.texture.name);   
-                string scaled = Directory.GetParent(Assembly.GetExecutingAssembly().Location)+ "/scaledTexCache/" + texInfo.file.url;
+                KSPLog.print("Freeing " + texInfo.texture.name);
+                string hash = GetMD5String(texInfo.file.fullPath);
+                string cached = Directory.GetParent(Assembly.GetExecutingAssembly().Location) + "/ScaledTexCache/" + texInfo.file.url + "_hash_" + hash;
 
-                if (File.Exists(scaled))
+                if (File.Exists(cached))
                 {
-                    KSPLog.print("Loaded From cache @" + scaled);
-                    byte[] cache = System.IO.File.ReadAllBytes(scaled);
+                    KSPLog.print("Loaded From cache @" + cached);
+                    byte[] cache = System.IO.File.ReadAllBytes(cached);
                     texInfo.texture.LoadImage(cache);
                 }
                 else
                 {
-
-                    KSPLog.print("Caching @" + scaled);
-                    Reload(texInfo, true, scaleSize, scaled);
+                    KSPLog.print("Caching @" + cached);
+                    Reload(texInfo, true, scaleSize, cached);
                     
                 }
                 Resources.UnloadUnusedAssets();

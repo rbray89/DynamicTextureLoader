@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -23,7 +24,7 @@ namespace DynamicTextureLoader
         static bool unloaded = false;
         static internal void Log(string s)
         {
-            KSPLog.print( "DynamicTextureLoader: "+s);
+            KSPLog.print("DynamicTextureLoader: " + s);
         }
         static int partLoadedIndex = 0;
         static int textureLoadedIndex = 0;
@@ -49,7 +50,7 @@ namespace DynamicTextureLoader
 
             List<AvailablePart> parts = PartLoader.LoadedPartsList;
             i = partLoadedIndex;
-            for ( ; parts != null && i < parts.Count; i++)
+            for (; parts != null && i < parts.Count; i++)
             {
                 AvailablePart ap = parts[i];
                 if (ap.partUrl != null && ap.partUrl != "")
@@ -65,7 +66,7 @@ namespace DynamicTextureLoader
             partLoadedIndex = i;
         }
 
-        private void Awake()
+        private void Start()
         {
             if (HighLogic.LoadedScene == GameScenes.LOADING && !loaded)
             {
@@ -76,6 +77,23 @@ namespace DynamicTextureLoader
 
                 moduleNode = new ConfigNode("MODULE");
                 moduleNode.SetValue("name", typeof(TextureUnloaderPartModule).Name, true);
+
+                Type gdType = typeof(GameDatabase);
+                List<DatabaseLoader<GameDatabase.TextureInfo>> textureLoaders =
+                    (from fld in gdType.GetFields(BindingFlags.Instance | BindingFlags.NonPublic)
+                     where fld.FieldType == typeof(List<DatabaseLoader<GameDatabase.TextureInfo>>)
+                     select (List<DatabaseLoader<GameDatabase.TextureInfo>>)fld.GetValue(GameDatabase.Instance)).FirstOrDefault();
+
+                DatabaseLoaderAttrib loaderAttrib = (DatabaseLoaderAttrib)Attribute.GetCustomAttribute(typeof(DatabaseLoaderTexture_DTL), typeof( DatabaseLoaderAttrib));
+                foreach (var textureLoader in textureLoaders)
+                {
+                    if (textureLoader.GetType().Name != "DatabaseLoaderTexture_DTL")
+                    {
+                        Log("Disabling " + textureLoader.GetType().Name);
+                        textureLoader.extensions.RemoveAll(i => loaderAttrib.extensions.Contains(i));
+                        Log(textureLoader.GetType().Name + " now has extensions: " + String.Join(", ", textureLoader.extensions.ToArray()));
+                    }
+                }
             }
 
             if (HighLogic.LoadedScene == GameScenes.SPACECENTER && !unloaded)
@@ -95,4 +113,26 @@ namespace DynamicTextureLoader
             Resources.UnloadUnusedAssets();
         }
     }
+
+
+    [DatabaseLoaderAttrib(new string[] { "mbm", "png", "tga", "jpg", "jpeg", "truecolor", "dds" })]
+    public class DatabaseLoaderTexture_DTL : DatabaseLoader<GameDatabase.TextureInfo>
+    {
+        public DatabaseLoaderTexture_DTL() : base()
+        {
+
+        }
+
+        public override IEnumerator Load(UrlDir.UrlFile urlFile, FileInfo file)
+        {
+            GameDatabase.TextureInfo texInfo =
+            TextureConverter.Load(urlFile);
+            obj = texInfo;
+            successful = true;
+            yield return null;
+        }
+    }
+
+
+
 }
