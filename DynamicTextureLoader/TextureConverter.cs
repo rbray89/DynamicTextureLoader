@@ -10,11 +10,6 @@ namespace DynamicTextureLoader
 {
     public class TextureConverter
     {
-        private static byte[] placeholder = new byte[] {   0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52, 0x00,
-                                                    0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x02, 0x08, 0x02, 0x00, 0x00, 0x00, 0xFD, 0xD4, 0x9A, 0x73, 0x00,
-                                                    0x00, 0x00, 0x16, 0x49, 0x44, 0x41, 0x54, 0x08, 0xD7, 0x63, 0xFC, 0xFF, 0xFF, 0x3F, 0x03, 0x03, 0x03,
-                                                    0x13, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x00, 0x24, 0x06, 0x03, 0x01, 0xBD, 0x1E, 0xE3, 0xBA, 0x00,
-                                                    0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82 };
 
         private static Color32[] ResizePixels(Color32[] pixels, int width, int height, int newWidth, int newHeight)
         {
@@ -26,7 +21,7 @@ namespace DynamicTextureLoader
                 {
                     for (int w = 0; w < newWidth; w++)
                     {
-                        newPixels[index++] = GetPixel(pixels, width, height, ((float)w) / newWidth, ((float)h) / newHeight, newWidth, newHeight);
+                        GetPixel(ref newPixels[index++], pixels, width, height, ((float)w) / newWidth, ((float)h) / newHeight, newWidth, newHeight);
                     }
                 }
                 return newPixels;
@@ -47,7 +42,15 @@ namespace DynamicTextureLoader
             }
         }
 
-        private static Color32 GetPixel(Color32[] pixels, int width, int height, float w, float h, int newWidth, int newHeight)
+        static Color32 cw1 = new Color32();
+        static Color32 cw2 = new Color32();
+        static Color32 cw3 = new Color32();
+        static Color32 cw4 = new Color32();
+        static Color32 ch1 = new Color32();
+        static Color32 ch2 = new Color32();
+        static Color32 ch3 = new Color32();
+        static Color32 ch4 = new Color32();
+        private static void GetPixel(ref Color32 newPixel, Color32[] pixels, int width, int height, float w, float h, int newWidth, int newHeight)
         {
             float widthDist = 4.0f - ((4.0f * (float)newWidth) / width);
             float heightDist = 4.0f - ((4.0f * (float)newHeight) / height);
@@ -61,7 +64,7 @@ namespace DynamicTextureLoader
             posArray[1, 2] = (int)Math.Ceiling((h * height) + heightDist);
             posArray[1, 3] = (int)Math.Ceiling((h * height) + (2.0 * heightDist));
 
-            Color32 cw1 = new Color32(), cw2 = new Color32(), cw3 = new Color32(), cw4 = new Color32(), ch1 = new Color32(), ch2 = new Color32(), ch3 = new Color32(), ch4 = new Color32();
+            
             int w1 = posArray[0, 0];
             int w2 = posArray[0, 1];
             int w3 = posArray[0, 2];
@@ -142,13 +145,10 @@ namespace DynamicTextureLoader
             byte chg = (byte)(((.25f * ch1.g) + (.75f * ch2.g) + (.75f * ch3.g) + (.25f * ch4.g)) / 2.0f);
             byte chb = (byte)(((.25f * ch1.b) + (.75f * ch2.b) + (.75f * ch3.b) + (.25f * ch4.b)) / 2.0f);
             byte cha = (byte)(((.25f * ch1.a) + (.75f * ch2.a) + (.75f * ch3.a) + (.25f * ch4.a)) / 2.0f);
-            byte R = (byte)((cwr + chr) / 2.0f);
-            byte G = (byte)((cwg + chg) / 2.0f);
-            byte B = (byte)((cwb + chb) / 2.0f);
-            byte A = (byte)((cwa + cha) / 2.0f);
-
-            Color32 color = new Color32(R, G, B, A);
-            return color;
+            newPixel.r = (byte)((cwr + chr) / 2.0f);
+            newPixel.g = (byte)((cwg + chg) / 2.0f);
+            newPixel.b = (byte)((cwb + chb) / 2.0f);
+            newPixel.a = (byte)((cwa + cha) / 2.0f);
         }
 
 
@@ -347,6 +347,7 @@ namespace DynamicTextureLoader
                 texture.texture.Apply(mipmaps, !texture.isReadable);
             }
 
+            GameObject.DestroyImmediate(tex);
         }
         
         public static void TGAToTexture(GameDatabase.TextureInfo texture, bool inPlace, Vector2 size, string cache = null, bool mipmaps = false)
@@ -788,6 +789,30 @@ namespace DynamicTextureLoader
                 return true;
             }
             return false;
+        }
+
+        public static void Reload(GameDatabase.TextureInfo texInfo)
+        {
+            if (texInfo.texture != null)
+            {
+                KSPLog.print("Reloading " + texInfo.texture.name);
+                string cached = Directory.GetParent(Assembly.GetExecutingAssembly().Location) + "/TexCache/" + texInfo.file.url;
+
+                if (File.Exists(cached))
+                {
+                    KSPLog.print("Loaded From cache @" + cached);
+                    byte[] cache = System.IO.File.ReadAllBytes(cached);
+                    texInfo.texture.LoadImage(cache);
+                }
+                else
+                {
+
+                    KSPLog.print("Caching @" + cached);
+                    Reload(texInfo, true, default(Vector2), cached);
+
+                }
+                Resources.UnloadUnusedAssets();
+            }
         }
 
         public static void Minimize(GameDatabase.TextureInfo texInfo)

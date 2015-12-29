@@ -45,7 +45,7 @@ namespace DynamicTextureLoader
                 if (texRef.count > 0 && texRef.texInfo != null && texRef.unloaded && HighLogic.LoadedSceneIsGame)
                 {
                     UnLoadFromQueue();
-                    TextureConverter.Reload(texRef.texInfo, true);
+                    TextureConverter.Reload(texRef.texInfo);
                     texRef.unloaded = false;
                 }
             }

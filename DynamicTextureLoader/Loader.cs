@@ -91,6 +91,8 @@ namespace DynamicTextureLoader
                 }
                 unloaded = true;
             }
+            System.GC.Collect();
+            Resources.UnloadUnusedAssets();
         }
     }
 }
