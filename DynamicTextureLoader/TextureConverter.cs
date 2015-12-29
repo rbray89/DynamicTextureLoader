@@ -809,6 +809,7 @@ namespace DynamicTextureLoader
             return MD5String;
         }
 
+        static Dictionary<string, Texture2D> texHashDictionary = new Dictionary<string, Texture2D>();
         internal static GameDatabase.TextureInfo Load(UrlDir.UrlFile urlFile)
         {
             string hash = GetMD5String(urlFile.fullPath);
@@ -818,7 +819,11 @@ namespace DynamicTextureLoader
             bool isCompressed = urlFile.fileExtension == "tga" ? false : true;
             GameDatabase.TextureInfo texInfo = new GameDatabase.TextureInfo(urlFile, null, isNormalMap, isReadable, isCompressed);
             string cached = Directory.GetParent(Assembly.GetExecutingAssembly().Location) + "/ScaledTexCache/" + texInfo.file.url + "_hash_" + hash;
-            if (File.Exists(cached))
+            if (texHashDictionary.ContainsKey(hash))
+            {
+                texInfo.texture = texHashDictionary[hash];
+            }
+            else if (File.Exists(cached))
             {
                 KSPLog.print("Loaded From cache @" + cached);
                 byte[] cache = System.IO.File.ReadAllBytes(cached);
@@ -829,12 +834,13 @@ namespace DynamicTextureLoader
                 }
                 texInfo.texture.Apply(hasMipmaps, !isReadable);
                 texInfo.texture.LoadImage(cache);
+                texHashDictionary[hash] = texInfo.texture;
             }
             else
             {
                 KSPLog.print("Caching @" + cached);
                 Reload(texInfo, false, default(Vector2), null, hasMipmaps);
-
+                texHashDictionary[hash] = texInfo.texture;
             }
             return texInfo;
         }
