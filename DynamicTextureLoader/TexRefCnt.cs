@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Reflection;
+using System.Security.Cryptography;
 using System.Text;
 using UnityEngine;
 
@@ -39,13 +42,13 @@ namespace DynamicTextureLoader
                 else
                 {
                     texRef = new TexRefCnt(texture);
-                    textureDictionary[texture.name] = texRef;
                 }
                 texRef.count++;
-                if (texRef.count > 0 && texRef.texInfo != null && texRef.unloaded && HighLogic.LoadedSceneIsGame)
+                if (texRef.count > 0 && texRef.texInfo != null && texRef.unloaded && 
+                    (HighLogic.LoadedSceneIsEditor || HighLogic.LoadedSceneIsFlight))
                 {
                     UnLoadFromQueue();
-                    TextureConverter.Reload(texRef.texInfo);
+                    Reload(texRef.texInfo);
                     texRef.unloaded = false;
                 }
             }
@@ -58,7 +61,7 @@ namespace DynamicTextureLoader
                 TexRefCnt texRef = unloadQueue.Dequeue();
                 if(!texRef.unloaded && texRef.count <= 0)
                 {
-                    TextureConverter.Minimize(texRef.texInfo);
+                    Minimize(texRef.texInfo);
                     texRef.unloaded = true;
                 }
             }
@@ -93,7 +96,6 @@ namespace DynamicTextureLoader
                 else
                 {
                     texRef = new TexRefCnt(texture);
-                    textureDictionary[texture.name] = texRef;
                 }
 
                 if (texRef.count > 0)
@@ -104,7 +106,7 @@ namespace DynamicTextureLoader
                 {
                     if (force)
                     {
-                        TextureConverter.Minimize(texRef.texInfo);
+                        Minimize(texRef.texInfo);
                         texRef.unloaded = true;
                     }
                     else
@@ -115,16 +117,121 @@ namespace DynamicTextureLoader
             }
         }
 
+        static String GetMD5String(String file)
+        {
+            string MD5String = null;
+            if (File.Exists(file))
+            {
+                FileStream stream = File.OpenRead(file);
+                MD5 md5 = MD5.Create();
+                byte[] hash = md5.ComputeHash(stream);
+                stream.Close();
+                MD5String = BitConverter.ToString(hash);
+            }
+            return MD5String;
+        }
+
+        static Dictionary<string, Texture2D> texHashDictionary = new Dictionary<string, Texture2D>();
+        internal static GameDatabase.TextureInfo Load(UrlDir.UrlFile urlFile)
+        {
+            string hash = GetMD5String(urlFile.fullPath);
+            bool hasMipmaps = urlFile.fileExtension == "png" ? false : true;
+            bool isNormalMap = urlFile.name.EndsWith("NRM");
+            bool isReadable = urlFile.fileExtension == "dds" || isNormalMap ? false : true;
+            bool isCompressed = urlFile.fileExtension == "tga" ? false : true;
+            GameDatabase.TextureInfo texInfo = new GameDatabase.TextureInfo(urlFile, null, isNormalMap, isReadable, isCompressed);
+            string cached = Directory.GetParent(Assembly.GetExecutingAssembly().Location) + "/ScaledTexCache/" + texInfo.file.url + "_hash_" + hash;
+            if (texHashDictionary.ContainsKey(hash))
+            {
+                texInfo.texture = texHashDictionary[hash];
+            }
+            else if (File.Exists(cached))
+            {
+                Loader.Log("Loaded From cache @" + cached);
+                byte[] cache = System.IO.File.ReadAllBytes(cached);
+                texInfo.texture = new Texture2D(32, 32, TextureFormat.ARGB32, hasMipmaps);
+                if (isCompressed)
+                {
+                    texInfo.texture.Compress(true);
+                }
+                texInfo.texture.Apply(hasMipmaps, !isReadable);
+                texInfo.texture.LoadImage(cache);
+                texHashDictionary[hash] = texInfo.texture;
+                //add texture reference.
+                new TexRefCnt(texInfo.texture, true);
+            }
+            else
+            {
+                Loader.Log("Caching @" + cached);
+                TextureConverter.Reload(texInfo, false, default(Vector2), null, hasMipmaps);
+                texHashDictionary[hash] = texInfo.texture;
+            }
+            return texInfo;
+        }
+
+        public static void Reload(GameDatabase.TextureInfo texInfo)
+        {
+            if (texInfo.texture != null)
+            {
+                Loader.Log("Reloading " + texInfo.texture.name);
+                string hash = GetMD5String(texInfo.file.fullPath);
+                string cached = Directory.GetParent(Assembly.GetExecutingAssembly().Location) + "/TexCache/" + texInfo.file.url + "_hash_" + hash;
+                if (File.Exists(cached))
+                {
+                    Loader.Log("Loaded From cache @" + cached);
+                    byte[] cache = System.IO.File.ReadAllBytes(cached);
+                    texInfo.texture.LoadImage(cache);
+                }
+                else
+                {
+
+                    Loader.Log("Caching @" + cached);
+                    TextureConverter.Reload(texInfo, true, default(Vector2), cached);
+
+                }
+                Resources.UnloadUnusedAssets();
+            }
+        }
+
+        public static void Minimize(GameDatabase.TextureInfo texInfo)
+        {
+            Vector2 scaleSize = new Vector2(32, 32);
+
+            if (texInfo.texture != null && (texInfo.texture.width > scaleSize.x || texInfo.texture.height > scaleSize.y))
+            {
+                Loader.Log("Freeing " + texInfo.texture.name);
+                string hash = GetMD5String(texInfo.file.fullPath);
+                string cached = Directory.GetParent(Assembly.GetExecutingAssembly().Location) + "/ScaledTexCache/" + texInfo.file.url + "_hash_" + hash;
+
+                if (File.Exists(cached))
+                {
+                    Loader.Log("Loaded From cache @" + cached);
+                    byte[] cache = System.IO.File.ReadAllBytes(cached);
+                    texInfo.texture.LoadImage(cache);
+                }
+                else
+                {
+                    Loader.Log("Caching @" + cached);
+                    TextureConverter.Reload(texInfo, true, scaleSize, cached);
+
+                }
+                Resources.UnloadUnusedAssets();
+            }
+        }
+
+
         int count = 0;
         GameDatabase.TextureInfo texInfo;
         bool unloaded = false;
-        public TexRefCnt(Texture2D tex)
+        public TexRefCnt(Texture2D tex, bool unloaded = false)
         {
             texInfo = GameDatabase.Instance.GetTextureInfo(tex.name);
             if(texInfo == null)
             {
-                KSPLog.print("texInfo for "+tex.name+" is null!");
+                Loader.Log("texInfo for "+tex.name+" is null!");
             }
+            textureDictionary[tex.name] = this;
+            this.unloaded = unloaded;
         }
     }
 }

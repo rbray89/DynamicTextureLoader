@@ -27,43 +27,28 @@ namespace DynamicTextureLoader
             KSPLog.print("DynamicTextureLoader: " + s);
         }
         static int partLoadedIndex = 0;
-        static int textureLoadedIndex = 0;
         ConfigNode moduleNode;
         private void Update()
         {
-
-            List<GameDatabase.TextureInfo> textures = GameDatabase.Instance.databaseTexture;
-            int i = textureLoadedIndex;
-            for (; textures != null && i < textures.Count; i++)
+            if (HighLogic.LoadedScene == GameScenes.LOADING || HighLogic.LoadedScene == GameScenes.MAINMENU)
             {
-                GameDatabase.TextureInfo tex = textures[i];
-                if (tex != null && tex.file != null && tex.file.url != null && tex.file.url != "")
+                List<AvailablePart> parts = PartLoader.LoadedPartsList;
+                int i = partLoadedIndex;
+                for (; parts != null && i < parts.Count; i++)
                 {
-                    string scaled = Directory.GetParent(Assembly.GetExecutingAssembly().Location) + "/scaledTexCache/" + tex.file.url;
-                    if (File.Exists(scaled))
+                    AvailablePart ap = parts[i];
+                    if (ap.partUrl != null && ap.partUrl != "")
                     {
-                        TextureConverter.Minimize(tex);
+                        Part part = ap.partPrefab;
+                        TextureUnloaderPartModule module = (TextureUnloaderPartModule)part.AddModule(typeof(TextureUnloaderPartModule).Name);
+                        MethodInfo mI = typeof(PartModule).GetMethod("Awake", BindingFlags.NonPublic | BindingFlags.Instance);
+                        mI.Invoke(module, null);
+                        module.Load(moduleNode);
+                        module.Unload(true);
                     }
                 }
+                partLoadedIndex = i;
             }
-            textureLoadedIndex = i;
-
-            List<AvailablePart> parts = PartLoader.LoadedPartsList;
-            i = partLoadedIndex;
-            for (; parts != null && i < parts.Count; i++)
-            {
-                AvailablePart ap = parts[i];
-                if (ap.partUrl != null && ap.partUrl != "")
-                {
-                    Part part = ap.partPrefab;
-                    TextureUnloaderPartModule module = (TextureUnloaderPartModule)part.AddModule(typeof(TextureUnloaderPartModule).Name);
-                    MethodInfo mI = typeof(PartModule).GetMethod("Awake", BindingFlags.NonPublic | BindingFlags.Instance);
-                    mI.Invoke(module, null);
-                    module.Load(moduleNode);
-                    module.Unload(true);
-                }
-            }
-            partLoadedIndex = i;
         }
 
         private void Start()
@@ -96,6 +81,7 @@ namespace DynamicTextureLoader
                 }
             }
 
+            //unload any materials added by mods.
             if (HighLogic.LoadedScene == GameScenes.SPACECENTER && !unloaded)
             {
                 foreach (AvailablePart ap in PartLoader.LoadedPartsList)
@@ -109,8 +95,12 @@ namespace DynamicTextureLoader
                 }
                 unloaded = true;
             }
-            System.GC.Collect();
-            Resources.UnloadUnusedAssets();
+
+            if (HighLogic.LoadedScene == GameScenes.SPACECENTER)
+            {
+                System.GC.Collect();
+                Resources.UnloadUnusedAssets();
+            }
         }
     }
 
@@ -126,7 +116,7 @@ namespace DynamicTextureLoader
         public override IEnumerator Load(UrlDir.UrlFile urlFile, FileInfo file)
         {
             GameDatabase.TextureInfo texInfo =
-            TextureConverter.Load(urlFile);
+            TexRefCnt.Load(urlFile);
             obj = texInfo;
             successful = true;
             yield return null;
