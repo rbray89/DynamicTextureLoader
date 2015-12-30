@@ -140,7 +140,9 @@ namespace DynamicTextureLoader
             bool isReadable = urlFile.fileExtension == "dds" || isNormalMap ? false : true;
             bool isCompressed = urlFile.fileExtension == "tga" ? false : true;
             GameDatabase.TextureInfo texInfo = new GameDatabase.TextureInfo(urlFile, null, isNormalMap, isReadable, isCompressed);
-            string cached = Directory.GetParent(Assembly.GetExecutingAssembly().Location) + "/ScaledTexCache/" + texInfo.file.url + "_hash_" + hash;
+            texInfo.name = urlFile.url;
+
+            string cached = Directory.GetParent(Assembly.GetExecutingAssembly().Location) + "/ScaledTexCache/" + urlFile.url + "_hash_" + hash;
             if (texHashDictionary.ContainsKey(hash))
             {
                 texInfo.texture = texHashDictionary[hash];
@@ -149,11 +151,8 @@ namespace DynamicTextureLoader
             {
                 Loader.Log("Loaded From cache @" + cached);
                 byte[] cache = System.IO.File.ReadAllBytes(cached);
-                texInfo.texture = new Texture2D(32, 32, TextureFormat.ARGB32, hasMipmaps);
-                if (isCompressed)
-                {
-                    texInfo.texture.Compress(true);
-                }
+                TextureFormat format = isCompressed ? TextureFormat.DXT5 : TextureFormat.ARGB32;
+                texInfo.texture = new Texture2D(32, 32, format, hasMipmaps);
                 texInfo.texture.Apply(hasMipmaps, !isReadable);
                 texInfo.texture.LoadImage(cache);
                 texHashDictionary[hash] = texInfo.texture;
