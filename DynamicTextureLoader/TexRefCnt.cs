@@ -166,7 +166,7 @@ namespace DynamicTextureLoader
             {
                 Loader.Log("Reloading " + texInfo.texture.name);
                 string cached = Directory.GetParent(Assembly.GetExecutingAssembly().Location) + "/TexCache/" + texInfo.texture.name + "_hash_" + hash;
-                if (false) // File.Exists(cached))
+                if (File.Exists(cached))
                 {
                     Loader.Log("Loaded From cache @" + cached);
                     byte[] cache = System.IO.File.ReadAllBytes(cached);
@@ -175,7 +175,7 @@ namespace DynamicTextureLoader
                 else
                 {
                     Loader.Log("Caching @" + cached);
-                    TextureConverter.Reload(texInfo, true, default(Vector2));//, cached);
+                    TextureConverter.Reload(texInfo, true, default(Vector2), cached);
                 }
                 Resources.UnloadUnusedAssets();
             }
