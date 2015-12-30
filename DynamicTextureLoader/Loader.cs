@@ -53,8 +53,10 @@ namespace DynamicTextureLoader
 
         private void Start()
         {
+            Assembly assembly = Assembly.GetExecutingAssembly();
             if (HighLogic.LoadedScene == GameScenes.LOADING && !loaded)
             {
+                Log("Version: " + assembly.GetName().Version);
                 loaded = true;
                 _MainTex = Shader.PropertyToID("_MainTex");
                 _BumpMap = Shader.PropertyToID("_BumpMap");
@@ -95,12 +97,10 @@ namespace DynamicTextureLoader
                 }
                 unloaded = true;
             }
-
-            if (HighLogic.LoadedScene == GameScenes.SPACECENTER)
-            {
-                System.GC.Collect();
-                Resources.UnloadUnusedAssets();
-            }
+            
+            System.GC.Collect();
+            Resources.UnloadUnusedAssets();
+            
         }
     }
 
