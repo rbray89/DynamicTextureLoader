@@ -771,25 +771,21 @@ namespace DynamicTextureLoader
             texture.file.fileExtension == "truecolor")
             {
                 IMGToTexture(texture, inPlace, size, cache, mipmaps);
-                texture.texture.name = texture.name;
                 return true;
             }
             else if (texture.file.fileExtension == "tga")
             {
                 TGAToTexture(texture, inPlace, size, cache, mipmaps);
-                texture.texture.name = texture.name;
                 return true;
             }
             else if (texture.file.fileExtension == "mbm")
             {
                 MBMToTexture(texture, inPlace, size, cache, mipmaps);
-                texture.texture.name = texture.name;
                 return true;
             }
             else if (texture.file.fileExtension == "dds")
             {
                 DDSToTexture(texture, inPlace, size, cache, mipmaps);
-                texture.texture.name = texture.name;
                 return true;
             }
             return false;

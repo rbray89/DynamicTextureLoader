@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using UnityEngine;
 
 namespace DynamicTextureLoader
@@ -15,22 +16,30 @@ namespace DynamicTextureLoader
         private static Queue<TexRefCnt> unloadQueue = new Queue<TexRefCnt>();
         private static Dictionary<string, Texture2D> texHashDictionary = new Dictionary<string, Texture2D>();
 
-        public static void LoadFromRenderer(Renderer renderer)
+        public static void LoadFromRenderer(Renderer renderer, List<TexRefCnt> list = null)
         {
             foreach (Material material in renderer.materials)
             {
-                LoadFromMaterial(material);
+                LoadFromMaterial(material, list);
             }
         }
 
-        public static void LoadFromMaterial(Material material)
+        public static void LoadFromList(List<TexRefCnt> list)
         {
-            LoadFromTexture(material, Loader._MainTex_PROPERTY);
-            LoadFromTexture(material, Loader._Emissive_PROPERTY);
-            LoadFromTexture(material, Loader._BumpMap_PROPERTY);
+            foreach (TexRefCnt texRef in list)
+            {
+                texRef.Load();
+            }
         }
 
-        public static void LoadFromTexture(Material material, int id)
+        public static void LoadFromMaterial(Material material, List<TexRefCnt> list)
+        {
+            LoadFromTexture(material, Loader._MainTex_PROPERTY, list);
+            LoadFromTexture(material, Loader._Emissive_PROPERTY, list);
+            LoadFromTexture(material, Loader._BumpMap_PROPERTY, list);
+        }
+
+        public static void LoadFromTexture(Material material, int id, List<TexRefCnt> list)
         {
             Texture2D texture = (Texture2D)material.GetTexture(id);
             if (texture != null)
@@ -45,6 +54,10 @@ namespace DynamicTextureLoader
                     texRef = new TexRefCnt(texture);
                 }
                 texRef.Load();
+                if(list != null)
+                {
+                    list.Add(texRef);
+                }
             }
         }
         
@@ -61,22 +74,30 @@ namespace DynamicTextureLoader
             }
         }
 
-        public static void UnLoadFromRenderer(Renderer renderer, bool force)
+        public static void UnLoadFromRenderer(Renderer renderer, bool force, List<TexRefCnt> list = null)
         {
             foreach (Material material in renderer.materials)
             {
-                UnLoadFromMaterial(material, force);
+                UnLoadFromMaterial(material, force, list);
             }
         }
 
-        public static void UnLoadFromMaterial(Material material, bool force)
+        public static void UnLoadFromList(List<TexRefCnt> list, bool force)
         {
-            UnLoadFromTexture(material, Loader._MainTex_PROPERTY, force);
-            UnLoadFromTexture(material, Loader._Emissive_PROPERTY, force);
-            UnLoadFromTexture(material, Loader._BumpMap_PROPERTY, force);
+            foreach(TexRefCnt texRef in list)
+            {
+                texRef.Unload(force);
+            }
         }
 
-        public static void UnLoadFromTexture(Material material, int id, bool force)
+        public static void UnLoadFromMaterial(Material material, bool force, List<TexRefCnt> list)
+        {
+            UnLoadFromTexture(material, Loader._MainTex_PROPERTY, force, list);
+            UnLoadFromTexture(material, Loader._Emissive_PROPERTY, force, list);
+            UnLoadFromTexture(material, Loader._BumpMap_PROPERTY, force, list);
+        }
+
+        public static void UnLoadFromTexture(Material material, int id, bool force, List<TexRefCnt> list)
         {
             Texture2D texture = (Texture2D)material.GetTexture(id);
             if (texture != null)
@@ -93,6 +114,10 @@ namespace DynamicTextureLoader
                 }
 
                 texRef.Unload(force);
+                if(list!= null)
+                {
+                    list.Add(texRef);
+                }
             }
         }
 
@@ -126,6 +151,28 @@ namespace DynamicTextureLoader
             if (texHashDictionary.ContainsKey(hash))
             {
                 texInfo.texture = texHashDictionary[hash];
+
+                foreach(UrlDir.UrlConfig config in GameDatabase.Instance.root.AllConfigs)
+                {
+                    ConfigNode model = config.config.GetNode("MODEL");
+                    if (config.type == "PART" && model != null)
+                    {
+                        int i = 0;
+                        string value = model.GetValue("texture", i);
+                        while(value != null)
+                        {
+                            String replace = @"(.*),\s*" + Regex.Escape(urlFile.url);
+                            if (Regex.IsMatch(value, replace))
+                            {
+                                model.SetValue("texture", Regex.Replace(value, replace, "$1, " + texInfo.texture.name), i);
+                            }
+                            i++;
+                            value = model.GetValue("texture", i);
+                        }
+                        
+                    }
+                }
+
             }
             else if (File.Exists(cached))
             {
@@ -138,15 +185,15 @@ namespace DynamicTextureLoader
                 texHashDictionary[hash] = texInfo.texture;
                 //add texture reference.
 
-                texInfo.texture.name = texInfo.file.url;
+                texInfo.texture.name = texInfo.name;
                 TexRefCnt texRef = new TexRefCnt(texInfo, hash, true);
 
             }
             else
             {
-                Loader.Log("Caching @" + cached);
                 TextureConverter.Reload(texInfo, false, default(Vector2), null, hasMipmaps);
                 texHashDictionary[hash] = texInfo.texture;
+                texInfo.texture.name = texInfo.name;
                 TexRefCnt texRef = new TexRefCnt(texInfo, hash, false);
             }
 
@@ -177,7 +224,6 @@ namespace DynamicTextureLoader
                     Loader.Log("Caching @" + cached);
                     TextureConverter.Reload(texInfo, true, default(Vector2), cached);
                 }
-                Resources.UnloadUnusedAssets();
             }
         }
 
@@ -189,7 +235,6 @@ namespace DynamicTextureLoader
             {
                 Loader.Log("Freeing " + texInfo.texture.name);
                 string cached = Directory.GetParent(Assembly.GetExecutingAssembly().Location) + "/ScaledTexCache/" + texInfo.texture.name + "_hash_" + hash;
-
                 if (File.Exists(cached))
                 {
                     Loader.Log("Loaded From cache @" + cached);
@@ -201,7 +246,6 @@ namespace DynamicTextureLoader
                     Loader.Log("Caching @" + cached);
                     TextureConverter.Reload(texInfo, true, scaleSize, cached);
                 }
-                Resources.UnloadUnusedAssets();
             }
         }
         
