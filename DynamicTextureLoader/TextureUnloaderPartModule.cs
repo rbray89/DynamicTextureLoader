@@ -8,7 +8,7 @@ namespace DynamicTextureLoader
 {
     class TextureUnloaderPartModule : PartModule
     {
-        Dictionary<string, List<TexRefCnt>> internalCache = new Dictionary<string, List<TexRefCnt>>();
+        static Dictionary<string, List<TexRefCnt>> internalCache = new Dictionary<string, List<TexRefCnt>>();
         bool loaded = false;
 
         public override void OnAwake()
@@ -28,8 +28,7 @@ namespace DynamicTextureLoader
         {
             UnityEngine.Object obj = UnityEngine.Object.Instantiate(part.partInfo.partPrefab);
             Part newPart = (Part)obj;
-
-            newPart.gameObject.SetActive(true);
+            
             newPart.gameObject.name = part.partInfo.partPrefab.name;
             newPart.partInfo = part.partInfo;
 
@@ -55,26 +54,23 @@ namespace DynamicTextureLoader
                     Loader.Log("Renderer: " + mr.name);
                     TexRefCnt.LoadFromRenderer(mr);
                 }
+
                 if (!internalCache.ContainsKey(partUrl))
                 {
-                    bool hasIVA = part.internalModel != null;
-                    
-                    if (part.internalModel != null)
+                    if (part.partInfo.internalConfig.HasData && HighLogic.LoadedSceneIsGame)
                     {
+                        Part iPart = fetchInternalPart();
+                        InternalModel internalModel = iPart.internalModel;
                         List<TexRefCnt> list = new List<TexRefCnt>();
-                        foreach (Renderer mr in part.internalModel.FindModelComponents<Renderer>())
+                        foreach (Renderer mr in internalModel.FindModelComponents<Renderer>())
                         {
                             TexRefCnt.LoadFromRenderer(mr, list);
                         }
                         internalCache[partUrl] = list;
-                        if (!hasIVA)
-                        {
-                            GameDatabase.DestroyImmediate(part.internalModel);
-                            part.internalModel = null;
-                        }
+                        GameObject.DestroyImmediate(iPart);
                     }
                 }
-                else
+                else 
                 {
                     List<TexRefCnt> list = internalCache[partUrl];
                     TexRefCnt.LoadFromList(list);
@@ -87,7 +83,6 @@ namespace DynamicTextureLoader
         {
             if (loaded || force)
             {
-
                 string partUrl = this.part.partInfo.partUrl;
                 Loader.Log("Unloading: " + partUrl);
                 foreach (Renderer mr in part.FindModelComponents<Renderer>())
@@ -98,23 +93,17 @@ namespace DynamicTextureLoader
 
                 if (!internalCache.ContainsKey(partUrl))
                 {
-                    bool hasIVA = part.internalModel != null;
-                    if (part.partInfo.internalConfig.HasData && !hasIVA)
+                    if (part.partInfo.internalConfig.HasData && HighLogic.LoadedSceneIsGame)
                     {
-                        part.CreateInternalModel();
-                        part.internalModel.SetVisible(false);
-                        part.internalModel.enabled = false;
-                    }
-                    if (part.internalModel != null)
-                    {
+                        Part iPart = fetchInternalPart();
+                        InternalModel internalModel = iPart.internalModel;
                         List<TexRefCnt> list = new List<TexRefCnt>();
-                        foreach (Renderer mr in part.internalModel.FindModelComponents<Renderer>())
+                        foreach (Renderer mr in internalModel.FindModelComponents<Renderer>())
                         {
                             TexRefCnt.UnLoadFromRenderer(mr, force, list);
                         }
                         internalCache[partUrl] = list;
-                        part.internalModel = null;
-                        part.InternalModelName = "";
+                        GameObject.DestroyImmediate(iPart);
                     }
                 }
                 else

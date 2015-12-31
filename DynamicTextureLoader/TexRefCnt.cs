@@ -54,7 +54,7 @@ namespace DynamicTextureLoader
                     texRef = new TexRefCnt(texture);
                 }
                 texRef.Load();
-                if(list != null)
+                if(list != null && !list.Contains(texRef))
                 {
                     list.Add(texRef);
                 }
@@ -114,7 +114,7 @@ namespace DynamicTextureLoader
                 }
 
                 texRef.Unload(force);
-                if(list!= null)
+                if(list!= null && !list.Contains(texRef))
                 {
                     list.Add(texRef);
                 }
