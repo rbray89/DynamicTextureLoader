@@ -147,7 +147,7 @@ namespace DynamicTextureLoader
             GameDatabase.TextureInfo texInfo = new GameDatabase.TextureInfo(urlFile, null, isNormalMap, isReadable, isCompressed);
             texInfo.name = urlFile.url;
 
-            string cached = Directory.GetParent(Assembly.GetExecutingAssembly().Location) + "/ScaledTexCache/" + urlFile.url + "_hash_" + hash;
+            string cached = Directory.GetParent(Assembly.GetExecutingAssembly().Location) + "/ScaledTexCache/" + texInfo.file.name + "_hash_" + hash;
             if (texHashDictionary.ContainsKey(hash))
             {
                 texInfo.texture = texHashDictionary[hash];
@@ -212,7 +212,7 @@ namespace DynamicTextureLoader
             if (texInfo.texture != null)
             {
                 Loader.Log("Reloading " + texInfo.texture.name);
-                string cached = Directory.GetParent(Assembly.GetExecutingAssembly().Location) + "/TexCache/" + texInfo.texture.name + "_hash_" + hash;
+                string cached = Directory.GetParent(Assembly.GetExecutingAssembly().Location) + "/TexCache/" + texInfo.file.name + "_hash_" + hash;
                 if (File.Exists(cached))
                 {
                     Loader.Log("Loaded From cache @" + cached);
@@ -234,7 +234,7 @@ namespace DynamicTextureLoader
             if (texInfo.texture != null && (texInfo.texture.width > scaleSize.x || texInfo.texture.height > scaleSize.y))
             {
                 Loader.Log("Freeing " + texInfo.texture.name);
-                string cached = Directory.GetParent(Assembly.GetExecutingAssembly().Location) + "/ScaledTexCache/" + texInfo.texture.name + "_hash_" + hash;
+                string cached = Directory.GetParent(Assembly.GetExecutingAssembly().Location) + "/ScaledTexCache/" + texInfo.file.name + "_hash_" + hash;
                 if (File.Exists(cached))
                 {
                     Loader.Log("Loaded From cache @" + cached);
