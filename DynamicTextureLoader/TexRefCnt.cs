@@ -148,6 +148,7 @@ namespace DynamicTextureLoader
             texInfo.name = urlFile.url;
 
             string cached = Directory.GetParent(Assembly.GetExecutingAssembly().Location) + "/ScaledTexCache/" + texInfo.file.name + "_hash_" + hash;
+            /*
             if (texHashDictionary.ContainsKey(hash))
             {
                 texInfo.texture = texHashDictionary[hash];
@@ -174,7 +175,8 @@ namespace DynamicTextureLoader
                 }
 
             }
-            else if (File.Exists(cached))
+            else */
+            if (File.Exists(cached))
             {
                 Loader.Log("Loaded From cache @" + cached);
                 byte[] cache = System.IO.File.ReadAllBytes(cached);
