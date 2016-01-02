@@ -37,7 +37,7 @@ namespace DynamicTextureLoader
                 for (; parts != null && i < parts.Count; i++)
                 {
                     AvailablePart ap = parts[i];
-                    if (ap.partUrl != null && ap.partUrl != "")
+                    if (ap.partUrl != null && ap.partUrl != "" && ap.TechRequired != "Unresearcheable")
                     {
                         Part part = ap.partPrefab;
                         TextureUnloaderPartModule module = (TextureUnloaderPartModule)part.AddModule(typeof(TextureUnloaderPartModule).Name);
@@ -45,6 +45,10 @@ namespace DynamicTextureLoader
                         mI.Invoke(module, null);
                         module.Load(moduleNode);
                         module.Unload(true);
+                    }
+                    else
+                    {
+                        Log(ap.name + " Not unloaded.");
                     }
                 }
                 partLoadedIndex = i;
@@ -96,11 +100,15 @@ namespace DynamicTextureLoader
             {
                 foreach (AvailablePart ap in PartLoader.LoadedPartsList)
                 {
-                    if (ap.partUrl != null && ap.partUrl != "")
+
+                    Part part = ap.partPrefab;
+                    if (part != null)
                     {
-                        Part part = ap.partPrefab;
                         TextureUnloaderPartModule module = (TextureUnloaderPartModule)part.FindModuleImplementing<TextureUnloaderPartModule>();
-                        module.Unload(true);
+                        if (module != null)
+                        {
+                            module.Unload(true);
+                        }
                     }
                 }
                 unloaded = true;
