@@ -71,14 +71,22 @@ namespace DynamicTextureLoader
                      where fld.FieldType == typeof(List<DatabaseLoader<GameDatabase.TextureInfo>>)
                      select (List<DatabaseLoader<GameDatabase.TextureInfo>>)fld.GetValue(GameDatabase.Instance)).FirstOrDefault();
 
+                DatabaseLoaderTexture_DTL textureLoaderDTL = (DatabaseLoaderTexture_DTL)textureLoaders.First(t => t.GetType() == typeof(DatabaseLoaderTexture_DTL));
+
                 DatabaseLoaderAttrib loaderAttrib = (DatabaseLoaderAttrib)Attribute.GetCustomAttribute(typeof(DatabaseLoaderTexture_DTL), typeof( DatabaseLoaderAttrib));
                 foreach (var textureLoader in textureLoaders)
                 {
-                    if (textureLoader.GetType().Name != "DatabaseLoaderTexture_DTL")
+                    if (textureLoader.GetType() != typeof(DatabaseLoaderTexture_DTL))
                     {
                         Log("Disabling " + textureLoader.GetType().Name);
+                        textureLoaderDTL.setLoader(textureLoader);
                         textureLoader.extensions.RemoveAll(i => loaderAttrib.extensions.Contains(i));
                         Log(textureLoader.GetType().Name + " now has extensions: " + String.Join(", ", textureLoader.extensions.ToArray()));
+                        
+                    }
+                    else
+                    {
+                        ((DatabaseLoaderTexture_DTL)textureLoader).fixExtensions(loaderAttrib.extensions.ToList());
                     }
                 }
             }
@@ -108,6 +116,7 @@ namespace DynamicTextureLoader
     [DatabaseLoaderAttrib(new string[] { "mbm", "png", "tga", "jpg", "jpeg", "truecolor", "dds" })]
     public class DatabaseLoaderTexture_DTL : DatabaseLoader<GameDatabase.TextureInfo>
     {
+        Dictionary<string,DatabaseLoader<GameDatabase.TextureInfo>> textureLoaders = new Dictionary<string, DatabaseLoader<GameDatabase.TextureInfo>>();
         public DatabaseLoaderTexture_DTL() : base()
         {
 
@@ -116,10 +125,29 @@ namespace DynamicTextureLoader
         public override IEnumerator Load(UrlDir.UrlFile urlFile, FileInfo file)
         {
             GameDatabase.TextureInfo texInfo =
-            TexRefCnt.Load(urlFile);
-            obj = texInfo;
-            successful = true;
+                TexRefCnt.Load(urlFile);
+            if (texInfo != null)
+            {
+                obj = texInfo;
+                successful = true;
+            }
             yield return null;
+        }
+
+        internal void fixExtensions(List<string> list)
+        {
+            extensions = list;
+        }
+
+        internal void setLoader(DatabaseLoader<GameDatabase.TextureInfo> textureLoader)
+        {
+            foreach (string extension in textureLoader.extensions)
+            {
+                if (extensions.Contains(extension))
+                {
+                    this.textureLoaders[extension] = textureLoader;
+                }
+            }
         }
     }
 
