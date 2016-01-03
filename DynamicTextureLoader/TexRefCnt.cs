@@ -14,7 +14,6 @@ namespace DynamicTextureLoader
     {
         private static Dictionary<string, TexRefCnt> textureDictionary = new Dictionary<string, TexRefCnt>();
         private static Queue<TexRefCnt> unloadQueue = new Queue<TexRefCnt>();
-        private static Dictionary<string, Texture2D> texHashDictionary = new Dictionary<string, Texture2D>();
 
         public static void LoadFromRenderer(Renderer renderer, List<TexRefCnt> list = null)
         {
@@ -123,7 +122,7 @@ namespace DynamicTextureLoader
 
 
 
-        static String GetMD5String(String file)
+        public static String GetMD5String(String file)
         {
             string MD5String = null;
             if (File.Exists(file))
@@ -136,73 +135,7 @@ namespace DynamicTextureLoader
             }
             return MD5String;
         }
-
-        internal static GameDatabase.TextureInfo Load(UrlDir.UrlFile urlFile)
-        {
-            string hash = GetMD5String(urlFile.fullPath);
-            bool hasMipmaps = urlFile.fileExtension == "png" ? false : true;
-            bool isNormalMap = urlFile.name.EndsWith("NRM");
-            bool isReadable = urlFile.fileExtension == "dds" || isNormalMap ? false : true;
-            bool isCompressed = urlFile.fileExtension == "tga" ? false : true;
-            GameDatabase.TextureInfo texInfo = new GameDatabase.TextureInfo(urlFile, null, isNormalMap, isReadable, isCompressed);
-            texInfo.name = urlFile.url;
-
-            string cached = Directory.GetParent(Assembly.GetExecutingAssembly().Location) + "/ScaledTexCache/" + texInfo.file.name + "_hash_" + hash;
-            /*
-            if (texHashDictionary.ContainsKey(hash))
-            {
-                texInfo.texture = texHashDictionary[hash];
-
-                foreach(UrlDir.UrlConfig config in GameDatabase.Instance.root.AllConfigs)
-                {
-                    ConfigNode model = config.config.GetNode("MODEL");
-                    if (config.type == "PART" && model != null)
-                    {
-                        int i = 0;
-                        string value = model.GetValue("texture", i);
-                        while(value != null)
-                        {
-                            String replace = @"(.*),\s*" + Regex.Escape(urlFile.url);
-                            if (Regex.IsMatch(value, replace))
-                            {
-                                model.SetValue("texture", Regex.Replace(value, replace, "$1, " + texInfo.texture.name), i);
-                            }
-                            i++;
-                            value = model.GetValue("texture", i);
-                        }
-                        
-                    }
-                }
-
-            }
-            else */
-            if (File.Exists(cached))
-            {
-                Loader.Log("Loaded From cache @" + cached);
-                byte[] cache = System.IO.File.ReadAllBytes(cached);
-                TextureFormat format = isCompressed ? TextureFormat.DXT5 : TextureFormat.ARGB32;
-                texInfo.texture = new Texture2D(32, 32, format, hasMipmaps);
-                texInfo.texture.Apply(hasMipmaps, !isReadable);
-                texInfo.texture.LoadImage(cache);
-                texHashDictionary[hash] = texInfo.texture;
-                //add texture reference.
-
-                texInfo.texture.name = texInfo.name;
-                TexRefCnt texRef = new TexRefCnt(texInfo, hash, true);
-
-            }
-            else
-            {
-                TextureConverter.Reload(texInfo, false, default(Vector2), null, hasMipmaps);
-                texHashDictionary[hash] = texInfo.texture;
-                texInfo.texture.name = texInfo.name;
-                TexRefCnt texRef = new TexRefCnt(texInfo, hash, false);
-            }
-
-            return texInfo;
-        }
         
-
 
         int count = 0;
         GameDatabase.TextureInfo texInfo;

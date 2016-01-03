@@ -288,7 +288,6 @@ namespace DynamicTextureLoader
 
             Texture2D tex = new Texture2D(2,2);
             bool convertToNormalFormat = texture.isNormalMap;
-            bool hasMipmaps = tex.mipmapCount == 1 ? false : true;
             
             tex.LoadImage(imageBuffer);
             
