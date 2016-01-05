@@ -8,7 +8,7 @@ namespace DynamicTextureLoader
 {
     class TextureUnloaderPartModule : PartModule
     {
-        static Dictionary<string, List<TexRefCnt>> internalCache = new Dictionary<string, List<TexRefCnt>>();
+        static Dictionary<string, List<TexRefCnt>> texCache = new Dictionary<string, List<TexRefCnt>>();
         bool loaded = false;
 
         public override void OnAwake()
@@ -49,13 +49,13 @@ namespace DynamicTextureLoader
 
                 Loader.Log("Loading: " + partUrl);
 
-                if (!internalCache.ContainsKey(partUrl))
+                if (!texCache.ContainsKey(partUrl))
                 {
 
                     List<TexRefCnt> list = new List<TexRefCnt>();
                     foreach (Renderer mr in part.FindModelComponents<Renderer>())
                     {
-                        Loader.Log("Renderer: " + mr.name);
+                        //Loader.Log("Renderer: " + mr.name);
                         TexRefCnt.LoadFromRenderer(mr, list);
                     }
 
@@ -67,7 +67,7 @@ namespace DynamicTextureLoader
                         InternalModel internalModel = iPart.internalModel;
                         foreach (Renderer mr in internalModel.FindModelComponents<Renderer>())
                         {
-                            Loader.Log("ImRenderer: " + mr.name);
+                            //Loader.Log("ImRenderer: " + mr.name);
                             TexRefCnt.LoadFromRenderer(mr, list);
                         }
                         GameObject.DestroyImmediate(iPart);
@@ -77,12 +77,12 @@ namespace DynamicTextureLoader
                         Loader.Log(part.partInfo.internalConfig.HasData+" " +HighLogic.LoadedSceneIsGame);
                     }
 
-                    internalCache[partUrl] = list;
+                    texCache[partUrl] = list;
                 }
                 else
                 {
-                    Loader.Log("Loading from internal cache...");
-                    List<TexRefCnt> list = internalCache[partUrl];
+                    Loader.Log("Loading from cache...");
+                    List<TexRefCnt> list = texCache[partUrl];
                     TexRefCnt.LoadFromList(list);
                 }
                 loaded = true;
@@ -96,12 +96,12 @@ namespace DynamicTextureLoader
                 string partUrl = this.part.partInfo.partUrl;
                 Loader.Log("Unloading: " + partUrl);
 
-                if (!internalCache.ContainsKey(partUrl))
+                if (!texCache.ContainsKey(partUrl))
                 {
                     List<TexRefCnt> list = new List<TexRefCnt>();
                     foreach (Renderer mr in part.FindModelComponents<Renderer>())
                     {
-                        Loader.Log("Renderer: " + mr.name);
+                        //Loader.Log("Renderer: " + mr.name);
                         TexRefCnt.UnLoadFromRenderer(mr, force, list);
                     }
 
@@ -111,20 +111,20 @@ namespace DynamicTextureLoader
                         InternalModel internalModel = iPart.internalModel;
                         foreach (Renderer mr in internalModel.FindModelComponents<Renderer>())
                         {
-                            Loader.Log("ImRenderer: " + mr.name);
+                            //Loader.Log("ImRenderer: " + mr.name);
                             TexRefCnt.UnLoadFromRenderer(mr, force, list);
                         }
                         GameObject.DestroyImmediate(iPart);
                     }
                     if (cache)
                     {
-                        internalCache[partUrl] = list;
+                        texCache[partUrl] = list;
                     }
                 }
                 else
                 {
-                    Loader.Log("Unloading from internal cache...");
-                    List<TexRefCnt> list = internalCache[partUrl];
+                    Loader.Log("Unloading from cache...");
+                    List<TexRefCnt> list = texCache[partUrl];
                     TexRefCnt.UnLoadFromList(list, force);
                 }
                 loaded = false;

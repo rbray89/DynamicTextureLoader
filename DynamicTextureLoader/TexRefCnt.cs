@@ -19,6 +19,7 @@ namespace DynamicTextureLoader
         {
             foreach (Material material in renderer.materials)
             {
+                //Loader.Log(material.name + " " + material.shader.name);
                 LoadFromMaterial(material, list);
             }
         }
@@ -27,7 +28,7 @@ namespace DynamicTextureLoader
         {
             foreach (TexRefCnt texRef in list)
             {
-                Loader.Log("List: " + texRef.texInfo.name);
+               // Loader.Log("List: " + texRef.texInfo.name);
                 texRef.Load();
             }
         }
@@ -86,7 +87,7 @@ namespace DynamicTextureLoader
         {
             foreach(TexRefCnt texRef in list)
             {
-                Loader.Log("List: " + texRef.texInfo.name);
+                //Loader.Log("List: " + texRef.texInfo.name);
                 texRef.Unload(force);
             }
         }
