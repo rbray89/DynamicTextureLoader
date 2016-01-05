@@ -13,7 +13,7 @@ namespace DynamicTextureLoader
 
         public override void OnAwake()
         {
-            if (HighLogic.LoadedSceneIsGame)
+            if (HighLogic.LoadedSceneIsEditor||HighLogic.LoadedSceneIsFlight)
             {
                 Load();
             }
@@ -48,30 +48,40 @@ namespace DynamicTextureLoader
                 string partUrl = this.part.partInfo.partUrl;
 
                 Loader.Log("Loading: " + partUrl);
-                
-                foreach (Renderer mr in part.FindModelComponents<Renderer>())
-                {
-                    Loader.Log("Renderer: " + mr.name);
-                    TexRefCnt.LoadFromRenderer(mr);
-                }
 
                 if (!internalCache.ContainsKey(partUrl))
                 {
+
+                    List<TexRefCnt> list = new List<TexRefCnt>();
+                    foreach (Renderer mr in part.FindModelComponents<Renderer>())
+                    {
+                        Loader.Log("Renderer: " + mr.name);
+                        TexRefCnt.LoadFromRenderer(mr, list);
+                    }
+
+                
                     if (part.partInfo.internalConfig.HasData && HighLogic.LoadedSceneIsGame)
                     {
+                        Loader.Log("Creating internal cache...");
                         Part iPart = fetchInternalPart();
                         InternalModel internalModel = iPart.internalModel;
-                        List<TexRefCnt> list = new List<TexRefCnt>();
                         foreach (Renderer mr in internalModel.FindModelComponents<Renderer>())
                         {
+                            Loader.Log("ImRenderer: " + mr.name);
                             TexRefCnt.LoadFromRenderer(mr, list);
                         }
-                        internalCache[partUrl] = list;
                         GameObject.DestroyImmediate(iPart);
                     }
+                    else
+                    {
+                        Loader.Log(part.partInfo.internalConfig.HasData+" " +HighLogic.LoadedSceneIsGame);
+                    }
+
+                    internalCache[partUrl] = list;
                 }
-                else 
+                else
                 {
+                    Loader.Log("Loading from internal cache...");
                     List<TexRefCnt> list = internalCache[partUrl];
                     TexRefCnt.LoadFromList(list);
                 }
@@ -79,35 +89,41 @@ namespace DynamicTextureLoader
             }
         }
 
-        public void Unload(bool force = false)
+        public void Unload(bool force = false, bool cache = true)
         {
             if (loaded || force)
             {
                 string partUrl = this.part.partInfo.partUrl;
                 Loader.Log("Unloading: " + partUrl);
-                foreach (Renderer mr in part.FindModelComponents<Renderer>())
-                {
-                    Loader.Log("Renderer: " + mr.name);
-                    TexRefCnt.UnLoadFromRenderer(mr, force);
-                }
 
                 if (!internalCache.ContainsKey(partUrl))
                 {
+                    List<TexRefCnt> list = new List<TexRefCnt>();
+                    foreach (Renderer mr in part.FindModelComponents<Renderer>())
+                    {
+                        Loader.Log("Renderer: " + mr.name);
+                        TexRefCnt.UnLoadFromRenderer(mr, force, list);
+                    }
+
                     if (part.partInfo.internalConfig.HasData && HighLogic.LoadedSceneIsGame)
                     {
                         Part iPart = fetchInternalPart();
                         InternalModel internalModel = iPart.internalModel;
-                        List<TexRefCnt> list = new List<TexRefCnt>();
                         foreach (Renderer mr in internalModel.FindModelComponents<Renderer>())
                         {
+                            Loader.Log("ImRenderer: " + mr.name);
                             TexRefCnt.UnLoadFromRenderer(mr, force, list);
                         }
-                        internalCache[partUrl] = list;
                         GameObject.DestroyImmediate(iPart);
+                    }
+                    if (cache)
+                    {
+                        internalCache[partUrl] = list;
                     }
                 }
                 else
                 {
+                    Loader.Log("Unloading from internal cache...");
                     List<TexRefCnt> list = internalCache[partUrl];
                     TexRefCnt.UnLoadFromList(list, force);
                 }

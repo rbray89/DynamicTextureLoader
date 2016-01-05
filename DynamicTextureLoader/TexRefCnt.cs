@@ -27,6 +27,7 @@ namespace DynamicTextureLoader
         {
             foreach (TexRefCnt texRef in list)
             {
+                Loader.Log("List: " + texRef.texInfo.name);
                 texRef.Load();
             }
         }
@@ -85,6 +86,7 @@ namespace DynamicTextureLoader
         {
             foreach(TexRefCnt texRef in list)
             {
+                Loader.Log("List: " + texRef.texInfo.name);
                 texRef.Unload(force);
             }
         }

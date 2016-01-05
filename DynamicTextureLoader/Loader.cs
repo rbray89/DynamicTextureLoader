@@ -44,7 +44,7 @@ namespace DynamicTextureLoader
                         MethodInfo mI = typeof(PartModule).GetMethod("Awake", BindingFlags.NonPublic | BindingFlags.Instance);
                         mI.Invoke(module, null);
                         module.Load(moduleNode);
-                        module.Unload(true);
+                        module.Unload(true, false);
                     }
                     else
                     {
@@ -199,7 +199,7 @@ namespace DynamicTextureLoader
         {
             texInfo.isNormalMap = texInfo.file.name.EndsWith("NRM");
             texInfo.isReadable = texInfo.file.fileExtension == "dds" || texInfo.file.fileExtension == "truecolor" || texInfo.isNormalMap ? false : true;
-            texInfo.isCompressed = texInfo.file.fileExtension == "truecolor" ? false : true;
+            texInfo.isCompressed = texInfo.file.fileExtension == "truecolor" || texInfo.file.fileExtension == "tga" ? false : true;
             bool hasMipmaps = texInfo.isNormalMap || texInfo.file.fileExtension == "dds" || texInfo.file.fileExtension == "tga";
             return hasMipmaps;
         }
