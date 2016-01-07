@@ -295,6 +295,10 @@ namespace DynamicTextureLoader
                     texInfo.texture = rep.texture;
                     texInfo.file = rep.file;
                 }
+                else
+                {
+                    texInfo.texture = new Texture2D(2, 2);
+                }
             }
 
             if (urlReplace == null)
@@ -325,6 +329,7 @@ namespace DynamicTextureLoader
                     texInfo.texture.name = texInfo.name;
                     TexRefCnt texRef = new TexRefCnt(texInfo, hash, false);
                 }
+
                 List<string> replacements = TexPatchLoader.GetReplacementKeys(urlFile.url);
                 if (replacements != null)
                 {
@@ -338,9 +343,9 @@ namespace DynamicTextureLoader
                         }
                     }
                 }
-
+                Loader.Log(texInfo.file.fileExtension + " c: " + texInfo.isCompressed + " n: " + texInfo.isNormalMap + " r: " + texInfo.isReadable + " m: " + (texInfo.texture.mipmapCount > 1));
             }
-            Loader.Log(texInfo.file.fileExtension + " c: " + texInfo.isCompressed + " n: " + texInfo.isNormalMap + " r: " + texInfo.isReadable + " m: " + (texInfo.texture.mipmapCount > 1));
+            
             return texInfo;
         }
 
