@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using UnityEngine;
 
 namespace DynamicTextureLoader
@@ -93,7 +94,21 @@ namespace DynamicTextureLoader
                         ((DatabaseLoaderTexture_DTL)textureLoader).fixExtensions(loaderAttrib.extensions.ToList());
                     }
                 }
-                
+
+
+
+                List<LoadingSystem> list = LoadingScreen.Instance.loaders;
+
+                if (list != null)
+                {
+
+                    GameObject aGameObject = new GameObject("ModuleManager");
+                    TexPatchLoader loader = aGameObject.AddComponent<TexPatchLoader>();
+                    int index = list.FindIndex(l => l.GetType() == typeof(PartLoader));
+                    list.Insert(index, loader);
+                    //list.Insert(2, loader);
+                }
+
             }
             
             //unload any materials added by mods.
@@ -121,12 +136,135 @@ namespace DynamicTextureLoader
         }
     }
 
+    internal class TexPatchLoader : LoadingSystem
+    {
+        private static Dictionary<string, string> texMapDictionary = new Dictionary<string, string>();
+        private static Dictionary<string, List<string>> texMapKeyDictionary = new Dictionary<string, List<string>>();
+        static bool xrefed = false;
+        public static string GetReplacement(string url)
+        {
+            loadDictionary();
+            if (texMapDictionary.ContainsKey(url))
+            {
+                return texMapDictionary[url];
+            }
+            return null;
+        }
+        public static List<string> GetReplacementKeys(string url)
+        {
+            if (texMapKeyDictionary.ContainsKey(url))
+            {
+                return texMapKeyDictionary[url];
+            }
+            return null;
+        }
 
-    [DatabaseLoaderAttrib(new string[] { "mbm", "png", "tga", "jpg", "jpeg", "truecolor", "dds" })]
+        public static void loadDictionary()
+        {
+            if (!xrefed)
+            {
+                foreach (UrlDir.UrlConfig config in GameDatabase.Instance.root.AllConfigs.ToArray())
+                {
+                    ConfigNode model = config.config.GetNode("MODEL");
+                    if (config.type == "PART" && model != null)
+                    {
+                        int i = 0;
+                        string value = model.GetValue("texture", i);
+                        while (value != null)
+                        {
+                            String capture = @"(.*[^\s])\s*,\s*(.*[^\s])";
+                            if (Regex.IsMatch(value, capture))
+                            {
+                                Match match = Regex.Match(value, capture);
+                                string url = match.Groups[2].Value;
+                                string rUrl = DatabaseLoaderTexture_DTL.GetReplacement(url);
+                                // if (rUrl != null)
+                                {
+                                    url = config.parent.parent.url + "/" + match.Groups[1].Value;
+                                    Loader.Log("stashing " + url + " -> " + rUrl);
+                                    texMapDictionary[url] = rUrl;
+                                    if(texMapKeyDictionary.ContainsKey(rUrl))
+                                    {
+                                        texMapKeyDictionary[rUrl].Add(url);
+                                    }
+                                    else
+                                    {
+                                        List<string> newList = new List<string>();
+                                        newList.Add(url);
+                                        texMapKeyDictionary[rUrl] = newList;
+                                    }
+                                }
+
+                            }
+                            i++;
+                            value = model.GetValue("texture", i);
+                        }
+                    }
+                }
+                xrefed = true;
+            }
+        }
+
+        bool ready = false;
+        public override bool IsReady()
+        {
+            
+            return ready;
+        }
+
+        public override void StartLoad()
+        {
+            foreach (UrlDir.UrlConfig config in GameDatabase.Instance.root.AllConfigs.ToArray())
+            {
+                ConfigNode model = config.config.GetNode("MODEL");
+                if (config.type == "PART" && model != null)
+                {
+                    //ConfigNode partReplacement = config.config.CreateCopy();
+                   // model = partReplacement.GetNode("MODEL");
+                    int i = 0;
+                    string value = model.GetValue("texture", i);
+                    while (value != null)
+                    {
+                        String capture = @"(.*[^\s])\s*,\s*(.*[^\s])";
+                        if (Regex.IsMatch(value, capture))
+                        {
+                            Match match = Regex.Match(value, capture);
+                            string url = match.Groups[2].Value;
+                            string rUrl = DatabaseLoaderTexture_DTL.GetReplacement(url);
+                           // if (rUrl != null)
+                            {
+                                url = config.parent.parent.url + "/" + match.Groups[1].Value;
+                                Loader.Log("Fixing " + url + " -> " + rUrl);
+                                //GameDatabase.TextureInfo clone = GameDatabase.Instance.GetTextureInfo(rUrl);
+                                //GameDatabase.Instance.databaseTexture.First(x => x.name == url).texture = clone.texture;
+                            }
+
+                        }
+                        i++;
+                        value = model.GetValue("texture", i);
+                    }
+                    model.values.RemoveValues("texture");
+                }
+            }
+            ready = true;
+        }
+    }
+    
+    [DatabaseLoaderAttrib(new string[] { "truecolor", "tga", "png", "mbm", "jpg", "jpeg", "dds" })]
     public class DatabaseLoaderTexture_DTL : DatabaseLoader<GameDatabase.TextureInfo>
     {
         Dictionary<string,DatabaseLoader<GameDatabase.TextureInfo>> textureLoaders = new Dictionary<string, DatabaseLoader<GameDatabase.TextureInfo>>();
         private static Dictionary<string, Texture2D> texHashDictionary = new Dictionary<string, Texture2D>();
+        private static Dictionary<string, string> texMapDictionary = new Dictionary<string, string>();
+
+        public static string GetReplacement(string url)
+        {
+            if (texMapDictionary.ContainsKey(url))
+            {
+                return texMapDictionary[url];
+            }
+            return url;
+        }
 
         public DatabaseLoaderTexture_DTL() : base()
         {
@@ -140,56 +278,67 @@ namespace DynamicTextureLoader
             bool hasMipmaps = updateToStockSettings(texInfo);
             texInfo.name = urlFile.url;
 
-            string cached = Directory.GetParent(Assembly.GetExecutingAssembly().Location) + "/ScaledTexCache/" + texInfo.file.name + "_hash_" + hash;
-            /*
-            if (texHashDictionary.ContainsKey(hash))
+            
+            string urlReplace = TexPatchLoader.GetReplacement(urlFile.url);
+
+            string cached;
+            if (urlReplace == null)
             {
-                texInfo.texture = texHashDictionary[hash];
-
-                foreach(UrlDir.UrlConfig config in GameDatabase.Instance.root.AllConfigs)
-                {
-                    ConfigNode model = config.config.GetNode("MODEL");
-                    if (config.type == "PART" && model != null)
-                    {
-                        int i = 0;
-                        string value = model.GetValue("texture", i);
-                        while(value != null)
-                        {
-                            String replace = @"(.*),\s*" + Regex.Escape(urlFile.url);
-                            if (Regex.IsMatch(value, replace))
-                            {
-                                model.SetValue("texture", Regex.Replace(value, replace, "$1, " + texInfo.texture.name), i);
-                            }
-                            i++;
-                            value = model.GetValue("texture", i);
-                        }
-                        
-                    }
-                }
-
-            }
-            else */
-            if (File.Exists(cached))
-            {
-                Loader.Log("Loaded From cache @" + cached);
-                byte[] cache = System.IO.File.ReadAllBytes(cached);
-                TextureFormat format = texInfo.isCompressed ? TextureFormat.DXT5 : TextureFormat.ARGB32;
-                texInfo.texture = new Texture2D(32, 32, format, hasMipmaps);
-                texInfo.texture.Apply(hasMipmaps, !texInfo.isReadable);
-                texInfo.texture.LoadImage(cache);
-                texHashDictionary[hash] = texInfo.texture;
-                //add texture reference.
-
-                texInfo.texture.name = texInfo.name;
-                TexRefCnt texRef = new TexRefCnt(texInfo, hash, true);
-
+                cached = Directory.GetParent(Assembly.GetExecutingAssembly().Location) + "/ScaledTexCache/" + Path.GetFileName(urlFile.url) + "_hash_" + hash;
             }
             else
             {
-                TextureConverter.Reload(texInfo, false, default(Vector2), null, hasMipmaps);
-                texHashDictionary[hash] = texInfo.texture;
-                texInfo.texture.name = texInfo.name;
-                TexRefCnt texRef = new TexRefCnt(texInfo, hash, false);
+                cached = null;
+                if(GameDatabase.Instance.ExistsTexture(urlReplace))
+                {
+                    GameDatabase.TextureInfo rep = GameDatabase.Instance.GetTextureInfo(urlReplace);
+                    texInfo.texture = rep.texture;
+                    texInfo.file = rep.file;
+                }
+            }
+
+            if (urlReplace == null)
+            {
+                if (texHashDictionary.ContainsKey(hash))
+                {
+                    texInfo.texture = texHashDictionary[hash];
+                    texMapDictionary[urlFile.url] = texInfo.texture.name;
+                }
+                else if (File.Exists(cached))
+                {
+                    Loader.Log("Loaded From cache @" + cached);
+                    byte[] cache = System.IO.File.ReadAllBytes(cached);
+                    TextureFormat format = texInfo.isCompressed ? TextureFormat.DXT5 : TextureFormat.ARGB32;
+                    texInfo.texture = new Texture2D(32, 32, format, hasMipmaps);
+                    texInfo.texture.Apply(hasMipmaps, !texInfo.isReadable);
+                    texInfo.texture.LoadImage(cache);
+                    texHashDictionary[hash] = texInfo.texture;
+                    //add texture reference.
+                    texInfo.texture.name = texInfo.name;
+                    TexRefCnt texRef = new TexRefCnt(texInfo, hash, true);
+
+                }
+                else
+                {
+                    TextureConverter.Reload(texInfo, false, default(Vector2), null, hasMipmaps);
+                    texHashDictionary[hash] = texInfo.texture;
+                    texInfo.texture.name = texInfo.name;
+                    TexRefCnt texRef = new TexRefCnt(texInfo, hash, false);
+                }
+                List<string> replacements = TexPatchLoader.GetReplacementKeys(urlFile.url);
+                if (replacements != null)
+                {
+                    foreach (string replace in replacements)
+                    {
+                        if (GameDatabase.Instance.ExistsTexture(replace))
+                        {
+                            GameDatabase.TextureInfo rep = GameDatabase.Instance.GetTextureInfo(replace);
+                            rep.texture = texInfo.texture;
+                            rep.file = texInfo.file;
+                        }
+                    }
+                }
+
             }
             Loader.Log(texInfo.file.fileExtension + " c: " + texInfo.isCompressed + " n: " + texInfo.isNormalMap + " r: " + texInfo.isReadable + " m: " + (texInfo.texture.mipmapCount > 1));
             return texInfo;

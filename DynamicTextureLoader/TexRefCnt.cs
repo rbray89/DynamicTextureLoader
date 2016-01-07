@@ -150,7 +150,7 @@ namespace DynamicTextureLoader
             if (texInfo.texture != null)
             {
                 Loader.Log("Reloading " + texInfo.texture.name);
-                string cached = Directory.GetParent(Assembly.GetExecutingAssembly().Location) + "/TexCache/" + texInfo.file.name + "_hash_" + hash;
+                string cached = Directory.GetParent(Assembly.GetExecutingAssembly().Location) + "/TexCache/" + Path.GetFileName(texInfo.texture.name) + "_hash_" + hash;
                 if (File.Exists(cached))
                 {
                     Loader.Log("Loaded From cache @" + cached);
@@ -172,7 +172,7 @@ namespace DynamicTextureLoader
             if (texInfo.texture != null && (texInfo.texture.width > scaleSize.x || texInfo.texture.height > scaleSize.y))
             {
                 Loader.Log("Freeing " + texInfo.texture.name);
-                string cached = Directory.GetParent(Assembly.GetExecutingAssembly().Location) + "/ScaledTexCache/" + texInfo.file.name + "_hash_" + hash;
+                string cached = Directory.GetParent(Assembly.GetExecutingAssembly().Location) + "/ScaledTexCache/" + Path.GetFileName(texInfo.texture.name) + "_hash_" + hash;
                 if (File.Exists(cached))
                 {
                     Loader.Log("Loaded From cache @" + cached);
