@@ -69,7 +69,7 @@ namespace DynamicTextureLoader
                 TexRefCnt texRef = unloadQueue.Dequeue();
                 if(!texRef.unloaded && texRef.count <= 0)
                 {
-                    texRef.Minimize();
+                    texRef.Minimize(false);
                     texRef.unloaded = true;
                 }
             }
@@ -87,7 +87,7 @@ namespace DynamicTextureLoader
         {
             foreach(TexRefCnt texRef in list)
             {
-                //Loader.Log("List: " + texRef.texInfo.name);
+                //Loader.Log("List: " + texRef.texInfo.texture.name);
                 texRef.Unload(force);
             }
         }
@@ -104,10 +104,11 @@ namespace DynamicTextureLoader
             Texture2D texture = (Texture2D)material.GetTexture(id);
             if (texture != null)
             {
-
+                //Loader.Log("List: " + texture.name);
                 TexRefCnt texRef;
                 if (textureDictionary.ContainsKey(texture.name))
                 {
+                    //Loader.Log("From Dictionary");
                     texRef = textureDictionary[texture.name];
                 }
                 else
@@ -140,7 +141,7 @@ namespace DynamicTextureLoader
         }
         
 
-        int count = 0;
+        int count = 1;
         GameDatabase.TextureInfo texInfo;
         bool unloaded = false;
         string hash;
@@ -165,11 +166,11 @@ namespace DynamicTextureLoader
             }
         }
 
-        public void Minimize()
+        public void Minimize(bool force)
         {
             Vector2 scaleSize = new Vector2(32, 32);
 
-            if (texInfo.texture != null && (texInfo.texture.width > scaleSize.x || texInfo.texture.height > scaleSize.y))
+            if (texInfo.texture != null && (texInfo.texture.width > scaleSize.x || texInfo.texture.height > scaleSize.y || force))
             {
                 Loader.Log("Freeing " + texInfo.texture.name);
                 string cached = Directory.GetParent(Assembly.GetExecutingAssembly().Location) + "/ScaledTexCache/" + Path.GetFileName(texInfo.texture.name) + "_hash_" + hash;
@@ -184,6 +185,10 @@ namespace DynamicTextureLoader
                     Loader.Log("Caching @" + cached);
                     TextureConverter.Reload(texInfo, true, scaleSize, cached);
                 }
+            }
+            else
+            {
+                //Loader.Log("null: "+(texInfo.texture != null)+" "+ (texInfo.texture.width > scaleSize.x || texInfo.texture.height > scaleSize.y)+" "+force);
             }
         }
         
@@ -209,13 +214,19 @@ namespace DynamicTextureLoader
             {
                 if (force)
                 {
-                    Minimize();
+                    //Loader.Log("Forced Unload: " + texInfo.texture.name);
+                    Minimize(force);
                     unloaded = true;
                 }
                 else
                 {
+                    //Loader.Log("Queuing Unload: " + texInfo.texture.name);
                     unloadQueue.Enqueue(this);
                 }
+            }
+            else
+            {
+                //Loader.Log("c: "+count + " t: "+ (texInfo != null) +" !u: "+ !unloaded);
             }
         }
 
