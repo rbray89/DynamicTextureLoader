@@ -157,37 +157,40 @@ namespace DynamicTextureLoader
                 DatabaseLoaderAttrib loaderAttrib = (DatabaseLoaderAttrib)Attribute.GetCustomAttribute(typeof(DatabaseLoaderTexture_DTL), typeof(DatabaseLoaderAttrib));
                 foreach (UrlDir.UrlConfig config in GameDatabase.Instance.root.AllConfigs.ToArray())
                 {
-                    ConfigNode model = config.config.GetNode("MODEL");
-                    if ((config.type == "PART" || config.type == "INTERNAL") && model != null)
+                    ConfigNode[] models = config.config.GetNodes("MODEL");
+                    if ((config.type == "PART" || config.type == "INTERNAL") && models != null)
                     {
-                        int i = 0;
-                        string modelUrl = model.GetValue("model");
-                        String modelCapture = @"(.*/)([^/\\]+)$";
-                        if (Regex.IsMatch(modelUrl, modelCapture))
+                        foreach (ConfigNode model in models)
                         {
-                            modelUrl = Regex.Match(modelUrl, modelCapture).Groups[1].Value;
-                            string value = model.GetValue("texture", i);
-                            while (value != null)
+                            int i = 0;
+                            string modelUrl = model.GetValue("model");
+                            String modelCapture = @"(.*/)([^/\\]+)$";
+                            if (Regex.IsMatch(modelUrl, modelCapture))
                             {
-                                String capture = @"(.*[^\s])\s*,\s*(.*[^\s])";
-                                if (Regex.IsMatch(value, capture))
+                                modelUrl = Regex.Match(modelUrl, modelCapture).Groups[1].Value;
+                                string value = model.GetValue("texture", i);
+                                while (value != null)
                                 {
-                                    Match match = Regex.Match(value, capture);
-                                    string realUrl = match.Groups[2].Value;
-                                    string dummyUrl = modelUrl + match.Groups[1].Value;
-                                    Loader.Log("stashing " + dummyUrl + " -> " + realUrl);
-                                    if (texMapDictionary.ContainsKey(dummyUrl) && texMapDictionary[dummyUrl] != realUrl)
+                                    String capture = @"(.*[^\s])\s*,\s*(.*[^\s])";
+                                    if (Regex.IsMatch(value, capture))
                                     {
-                                        Loader.Log("Dummy has multiple refs!");
-                                    }
-                                    else
-                                    {
-                                        texMapDictionary[dummyUrl] = realUrl;
-                                    }
+                                        Match match = Regex.Match(value, capture);
+                                        string realUrl = match.Groups[2].Value;
+                                        string dummyUrl = modelUrl + match.Groups[1].Value;
+                                        Loader.Log("stashing " + dummyUrl + " -> " + realUrl);
+                                        if (texMapDictionary.ContainsKey(dummyUrl) && texMapDictionary[dummyUrl] != realUrl)
+                                        {
+                                            Loader.Log("Dummy has multiple refs!");
+                                        }
+                                        else
+                                        {
+                                            texMapDictionary[dummyUrl] = realUrl;
+                                        }
 
+                                    }
+                                    i++;
+                                    value = model.GetValue("texture", i);
                                 }
-                                i++;
-                                value = model.GetValue("texture", i);
                             }
                         }
                     }
