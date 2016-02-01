@@ -31,12 +31,18 @@ namespace DynamicTextureLoader
             
             newPart.gameObject.name = part.partInfo.partPrefab.name;
             newPart.partInfo = part.partInfo;
-
-            if (newPart.partInfo.internalConfig.HasData)
+            try
             {
-                newPart.CreateInternalModel();
-                newPart.internalModel.SetVisible(false);
-                newPart.internalModel.enabled = false;
+                if (newPart.partInfo.internalConfig.HasData)
+                {
+                    newPart.CreateInternalModel();
+                    newPart.internalModel.SetVisible(false);
+                    newPart.internalModel.enabled = false;
+                }
+            }
+            catch
+            {
+                return null;
             }
             return newPart;
         }
@@ -62,15 +68,18 @@ namespace DynamicTextureLoader
                 
                     if (part.partInfo.internalConfig.HasData && HighLogic.LoadedSceneIsGame)
                     {
-                        Loader.Log("Creating internal cache...");
+                        Loader.Log("loading IVA: ");
                         Part iPart = fetchInternalPart();
-                        InternalModel internalModel = iPart.internalModel;
-                        foreach (Renderer mr in internalModel.FindModelComponents<Renderer>())
+                        if (iPart != null)
                         {
-                            //Loader.Log("ImRenderer: " + mr.name);
-                            TexRefCnt.LoadFromRenderer(mr, list);
+                            InternalModel internalModel = iPart.internalModel;
+                            foreach (Renderer mr in internalModel.FindModelComponents<Renderer>())
+                            {
+                                //Loader.Log("ImRenderer: " + mr.name);
+                                TexRefCnt.LoadFromRenderer(mr, list);
+                            }
+                            GameObject.DestroyImmediate(iPart);
                         }
-                        GameObject.DestroyImmediate(iPart);
                     }
                     else
                     {
@@ -107,14 +116,17 @@ namespace DynamicTextureLoader
 
                     if (part.partInfo.internalConfig.HasData && HighLogic.LoadedSceneIsGame)
                     {
+                        Loader.Log("unloading IVA: ");
                         Part iPart = fetchInternalPart();
-                        InternalModel internalModel = iPart.internalModel;
-                        foreach (Renderer mr in internalModel.FindModelComponents<Renderer>())
+                        if (iPart != null)
                         {
-                            //Loader.Log("ImRenderer: " + mr.name);
-                            TexRefCnt.UnLoadFromRenderer(mr, force, list);
+                            InternalModel internalModel = iPart.internalModel;
+                            foreach (Renderer mr in internalModel.FindModelComponents<Renderer>())
+                            {
+                                TexRefCnt.UnLoadFromRenderer(mr, force, list);
+                            }
+                            GameObject.DestroyImmediate(iPart);
                         }
-                        GameObject.DestroyImmediate(iPart);
                     }
                     if (cache)
                     {

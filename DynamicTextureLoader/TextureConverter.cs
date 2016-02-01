@@ -33,15 +33,6 @@ namespace DynamicTextureLoader
             }
         }
 
-        public static void ConvertToUnityNormalMap(Color32[] colors)
-        {
-            for(int i = 0; i < colors.Length; i++)
-            {
-                colors[i].a = colors[i].r;
-                colors[i].r = colors[i].g;
-                colors[i].b = colors[i].g;
-            }
-        }
 
         static Color32 cw1 = new Color32();
         static Color32 cw2 = new Color32();
@@ -287,11 +278,12 @@ namespace DynamicTextureLoader
             byte[] imageBuffer = System.IO.File.ReadAllBytes(texture.file.fullPath);
 
             Texture2D tex = new Texture2D(2,2);
-            bool convertToNormalFormat = texture.isNormalMap;
+            bool convertToNormalFormat = false;// texture.isNormalMap;
             
             tex.LoadImage(imageBuffer);
             
             Color32[] colors = tex.GetPixels32();
+
             if (convertToNormalFormat)
             {
                 for (int i = 0; i < colors.Length; i++)
@@ -361,7 +353,7 @@ namespace DynamicTextureLoader
             int depth = imageBuffer[16];
             bool alpha = depth == 32 ? true : false;
             bool hasAlpha = false;
-            bool convertToNormalFormat = texture.isNormalMap; 
+            bool convertToNormalFormat = false;// texture.isNormalMap; 
             
 
             Color32[] colors = new Color32[width * height];
@@ -562,7 +554,7 @@ namespace DynamicTextureLoader
                 {
                     if (dDSHeader.ddspf.dwFourCC == DDSHeaders.DDSValues.uintDXT1)
                     {
-                        if (inPlace)
+                        if (inPlace && !texture.isReadable)
                         {
                             //This is a small hack to re-load the texture, even when it isn't readable. Unfortnately,
                             //we can't control compression, mipmaps, or anything else really, as the texture is still
@@ -587,6 +579,13 @@ namespace DynamicTextureLoader
                             GameObject.DestroyImmediate(tmpTex);
                             GameDatabase.DestroyImmediate(tmpTexSrc);
                         }
+                        else if (inPlace)
+                        {
+                            texture.texture.Resize((int)dDSHeader.dwWidth, (int)dDSHeader.dwHeight, TextureFormat.RGB24, mipmap);
+                            texture.texture.Compress(false);
+                            texture.texture.LoadRawTextureData(binaryReader.ReadBytes((int)(binaryReader.BaseStream.Length - binaryReader.BaseStream.Position)));
+                            texture.texture.Apply(false, !texture.isReadable);
+                        }
                         else
                         {
                             GameObject.DestroyImmediate(texture.texture);
@@ -597,7 +596,7 @@ namespace DynamicTextureLoader
                     }
                     else if (dDSHeader.ddspf.dwFourCC == DDSHeaders.DDSValues.uintDXT3)
                     {
-                        if (inPlace)
+                        if (inPlace && !texture.isReadable)
                         {
                             //This is a small hack to re-load the texture, even when it isn't readable. Unfortnately,
                             //we can't control compression, mipmaps, or anything else really, as the texture is still
@@ -621,6 +620,12 @@ namespace DynamicTextureLoader
                             GameObject.DestroyImmediate(tmpTex);
                             GameDatabase.DestroyImmediate(tmpTexSrc);
                         }
+                        else if(inPlace)
+                        {
+                            texture.texture.Resize((int)dDSHeader.dwWidth, (int)dDSHeader.dwHeight, (TextureFormat)11, mipmap);
+                            texture.texture.LoadRawTextureData(binaryReader.ReadBytes((int)(binaryReader.BaseStream.Length - binaryReader.BaseStream.Position)));
+                            texture.texture.Apply(false, !texture.isReadable);
+                        }
                         else
                         {
                             GameObject.DestroyImmediate(texture.texture);
@@ -631,7 +636,7 @@ namespace DynamicTextureLoader
                     }
                     else if (dDSHeader.ddspf.dwFourCC == DDSHeaders.DDSValues.uintDXT5)
                     {
-                        if (inPlace)
+                        if (inPlace && !texture.isReadable)
                         {
                             //This is a small hack to re-load the texture, even when it isn't readable. Unfortnately,
                             //we can't control compression, mipmaps, or anything else really, as the texture is still
@@ -653,6 +658,14 @@ namespace DynamicTextureLoader
                             texture.texture.LoadImage(file);
                             GameObject.DestroyImmediate(tmpTex);
                             GameDatabase.DestroyImmediate(tmpTexSrc);
+                        }
+                        else if(inPlace)
+                        {
+                            texture.texture.Resize((int)dDSHeader.dwWidth, (int)dDSHeader.dwHeight, TextureFormat.ARGB32, mipmap);
+                            texture.texture.Compress(false);
+                            
+                            texture.texture.LoadRawTextureData(binaryReader.ReadBytes((int)(binaryReader.BaseStream.Length - binaryReader.BaseStream.Position)));
+                            texture.texture.Apply(false, !texture.isReadable);
                         }
                         else
                         {
@@ -714,7 +727,7 @@ namespace DynamicTextureLoader
                     }
                     if (ok)
                     {
-                        if (inPlace)
+                        if (inPlace && !texture.isReadable)
                         {
                             //This is a small hack to re-load the texture, even when it isn't readable. Unfortnately,
                             //we can't control compression, mipmaps, or anything else really, as the texture is still
@@ -744,6 +757,12 @@ namespace DynamicTextureLoader
                             texture.texture.LoadImage(file);
                             GameDatabase.DestroyImmediate(tmpTex);
                             GameDatabase.DestroyImmediate(tmpTexSrc);
+                        }
+                        else if(inPlace)
+                        {
+                            texture.texture.Resize((int)dDSHeader.dwWidth, (int)dDSHeader.dwHeight, textureFormat, mipmap);
+                            texture.texture.LoadRawTextureData(binaryReader.ReadBytes((int)(binaryReader.BaseStream.Length - binaryReader.BaseStream.Position)));
+                            texture.texture.Apply(false, !texture.isReadable);
                         }
                         else
                         {

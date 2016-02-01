@@ -264,6 +264,10 @@ namespace DynamicTextureLoader
                 byte[] cache = System.IO.File.ReadAllBytes(cached);
                 TextureFormat format = texInfo.isCompressed ? TextureFormat.DXT5 : TextureFormat.ARGB32;
                 texInfo.texture = new Texture2D(32, 32, format, hasMipmaps);
+                if(texInfo.file.fileExtension == "dds")
+                {
+                    //texInfo.isReadable = true;
+                }
                 texInfo.texture.Apply(hasMipmaps, !texInfo.isReadable);
                 texInfo.texture.LoadImage(cache);
                 texHashDictionary[hash] = texInfo.texture;
