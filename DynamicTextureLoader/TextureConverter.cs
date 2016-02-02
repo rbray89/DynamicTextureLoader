@@ -278,7 +278,7 @@ namespace DynamicTextureLoader
             byte[] imageBuffer = System.IO.File.ReadAllBytes(texture.file.fullPath);
 
             Texture2D tex = new Texture2D(2,2);
-            bool convertToNormalFormat = false;// texture.isNormalMap;
+            bool convertToNormalFormat =  texture.isNormalMap;
             
             tex.LoadImage(imageBuffer);
             
@@ -353,7 +353,7 @@ namespace DynamicTextureLoader
             int depth = imageBuffer[16];
             bool alpha = depth == 32 ? true : false;
             bool hasAlpha = false;
-            bool convertToNormalFormat = false;// texture.isNormalMap; 
+            bool convertToNormalFormat = texture.isNormalMap; 
             
 
             Color32[] colors = new Color32[width * height];
