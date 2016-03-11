@@ -66,9 +66,42 @@
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Experimentals|AnyCPU'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\Experimentals\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Experimentals|x64'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x64\Experimentals\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Experimentals|x86'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x86\Experimentals\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x86</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="Assembly-CSharp">
       <HintPath>..\KSPResources\Assembly-CSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="Assembly-CSharp-firstpass">
+      <HintPath>..\KSPResources\Assembly-CSharp-firstpass.dll</HintPath>
+    </Reference>
+    <Reference Include="KSPUtil">
+      <HintPath>..\KSPResources\KSPUtil.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -96,8 +129,7 @@ xcopy  $(TargetName).pdb "$(SolutionDir)BuildOutput\GameData\DynamicTextureLoade
 xcopy  $(TargetFileName).mdb "$(SolutionDir)BuildOutput\GameData\DynamicTextureLoader\Plugins\" /eyir
 
 
-xcopy "$(SolutionDir)BuildOutput\GameData" "C:\Users\rbray\Documents\ksp\ksp-$(PlatformName)-1-0-5\GameData" /e /y /i /r
-xcopy "$(SolutionDir)BuildOutput\GameData" "C:\Users\rbray\Documents\ksp\ksp-$(PlatformName)-1-0-5\GameData" /e /y /i /r
+xcopy "$(SolutionDir)BuildOutput\GameData" "C:\Program Files (x86)\Steam\steamapps\common\Kerbal Space Program\GameData" /eyir
 
 if $(ConfigurationName) == Release del /s "$(SolutionDir)BuildOutput\*.pdb"
 if $(ConfigurationName) == Release del /s "$(SolutionDir)BuildOutput\*.mdb"
@@ -106,7 +138,10 @@ if $(ConfigurationName) == Release 7z a -tzip "$(SolutionDir)$(PlatformName)-Dyn
   </PropertyGroup>
   <PropertyGroup>
     <PreBuildEvent>echo "Running Pre-build"
-copy /Y "$(SolutionDir)KSPResources\$(PlatformName)\*.dll" "$(SolutionDir)KSPResources"</PreBuildEvent>
+del /s "$(SolutionDir)KSPResources\*.dll"
+if $(ConfigurationName) == Release xcopy "$(SolutionDir)KSPResources\$(ConfigurationName)\*.dll" "$(SolutionDir)KSPResources" /eyir
+if $(ConfigurationName) == Debug xcopy "$(SolutionDir)KSPResources\$(ConfigurationName)\*.dll" "$(SolutionDir)KSPResources" /eyir
+if $(ConfigurationName) == Experimentals xcopy "C:\Program Files (x86)\Steam\steamapps\common\Kerbal Space Program\KSP_Data\Managed\*.dll" "$(SolutionDir)KSPResources" /eyir</PreBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
