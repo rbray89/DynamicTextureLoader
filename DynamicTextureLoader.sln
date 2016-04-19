@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.23107.0
+VisualStudioVersion = 14.0.24720.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DynamicTextureLoader", "DynamicTextureLoader\DynamicTextureLoader.csproj", "{4F991EE8-C601-4AD5-A10C-3E08E216F9F4}"
 EndProject
@@ -10,6 +10,9 @@ Global
 		Debug|Any CPU = Debug|Any CPU
 		Debug|x64 = Debug|x64
 		Debug|x86 = Debug|x86
+		Experimentals|Any CPU = Experimentals|Any CPU
+		Experimentals|x64 = Experimentals|x64
+		Experimentals|x86 = Experimentals|x86
 		Release|Any CPU = Release|Any CPU
 		Release|x64 = Release|x64
 		Release|x86 = Release|x86
@@ -21,6 +24,12 @@ Global
 		{4F991EE8-C601-4AD5-A10C-3E08E216F9F4}.Debug|x64.Build.0 = Debug|x64
 		{4F991EE8-C601-4AD5-A10C-3E08E216F9F4}.Debug|x86.ActiveCfg = Debug|x86
 		{4F991EE8-C601-4AD5-A10C-3E08E216F9F4}.Debug|x86.Build.0 = Debug|x86
+		{4F991EE8-C601-4AD5-A10C-3E08E216F9F4}.Experimentals|Any CPU.ActiveCfg = Experimentals|Any CPU
+		{4F991EE8-C601-4AD5-A10C-3E08E216F9F4}.Experimentals|Any CPU.Build.0 = Experimentals|Any CPU
+		{4F991EE8-C601-4AD5-A10C-3E08E216F9F4}.Experimentals|x64.ActiveCfg = Experimentals|x64
+		{4F991EE8-C601-4AD5-A10C-3E08E216F9F4}.Experimentals|x64.Build.0 = Experimentals|x64
+		{4F991EE8-C601-4AD5-A10C-3E08E216F9F4}.Experimentals|x86.ActiveCfg = Experimentals|x86
+		{4F991EE8-C601-4AD5-A10C-3E08E216F9F4}.Experimentals|x86.Build.0 = Experimentals|x86
 		{4F991EE8-C601-4AD5-A10C-3E08E216F9F4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4F991EE8-C601-4AD5-A10C-3E08E216F9F4}.Release|Any CPU.Build.0 = Release|Any CPU
 		{4F991EE8-C601-4AD5-A10C-3E08E216F9F4}.Release|x64.ActiveCfg = Release|x64
